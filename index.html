@@ -13,8 +13,12 @@
     --bg-3: #4a1942;
     --accent: #ff7eb3;
     --accent-2: #ffb3c7;
+    --accent-3: #ffd8e6;
     --text: #fff5fb;
-    --muted: rgba(255, 245, 251, 0.65);
+    --muted: rgba(255, 245, 251, 0.6);
+    --card: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --gold: #ffd084;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -23,206 +27,718 @@
     background: radial-gradient(ellipse at top, var(--bg-2) 0%, var(--bg-1) 50%, #0a0418 100%);
     color: var(--text);
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    overflow: hidden;
+    padding: 24px 16px 110px;
+    overflow-x: hidden;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
   }
   body::before {
     content: '';
-    position: absolute;
-    inset: 0;
+    position: fixed; inset: 0;
     background:
-      radial-gradient(circle at 20% 30%, rgba(255, 126, 179, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 20% 30%, rgba(255, 126, 179, 0.12) 0%, transparent 40%),
       radial-gradient(circle at 80% 70%, rgba(74, 25, 66, 0.4) 0%, transparent 50%);
-    pointer-events: none;
-  }
-  .hearts {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
     pointer-events: none;
     z-index: 0;
   }
+  .hearts { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
   .heart {
-    position: absolute;
-    font-size: 18px;
-    opacity: 0;
-    animation: float 12s linear infinite;
+    position: absolute; font-size: 18px; opacity: 0;
+    animation: float 14s linear infinite;
     filter: drop-shadow(0 0 8px rgba(255, 126, 179, 0.5));
   }
   @keyframes float {
     0%   { transform: translateY(105vh) scale(0.6) rotate(-15deg); opacity: 0; }
-    10%  { opacity: 0.8; }
-    90%  { opacity: 0.8; }
+    10%  { opacity: 0.7; } 90%  { opacity: 0.7; }
     100% { transform: translateY(-10vh) scale(1.1) rotate(15deg); opacity: 0; }
   }
-  .container {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    max-width: 640px;
-    width: 100%;
+
+  .app {
+    position: relative; z-index: 1;
+    max-width: 640px; margin: 0 auto;
   }
+  .view { display: none; animation: fadeIn .35s ease; }
+  .view.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ HEADER ============ */
   .label {
-    font-size: 13px;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 16px;
+    text-align: center; font-size: 12px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
   }
   .title {
-    font-size: clamp(22px, 5vw, 32px);
-    font-weight: 300;
-    margin-bottom: 40px;
-    color: var(--accent-2);
+    text-align: center; font-size: clamp(20px, 5vw, 28px);
+    font-weight: 300; margin-bottom: 28px; color: var(--accent-2);
   }
+
+  /* ============ COMPTEUR ============ */
   .hero {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 32px;
-    padding: 48px 32px;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+    background: var(--card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border); border-radius: 28px;
+    padding: 40px 24px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+    text-align: center;
   }
   .big-number {
-    font-size: clamp(80px, 22vw, 160px);
-    font-weight: 200;
-    line-height: 1;
+    font-size: clamp(70px, 20vw, 140px); font-weight: 200; line-height: 1;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, #ffd8e6 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 8px;
-    font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 8px; font-variant-numeric: tabular-nums;
   }
   .big-label {
-    font-size: 18px;
-    color: var(--accent-2);
-    font-weight: 400;
-    letter-spacing: 0.1em;
-    margin-bottom: 36px;
+    font-size: 16px; color: var(--accent-2); letter-spacing: 0.1em; margin-bottom: 32px;
   }
-  .breakdown {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
+  .breakdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .unit {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    padding: 16px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05); border-radius: 14px;
+    padding: 14px 6px; border: 1px solid rgba(255, 255, 255, 0.06);
   }
-  .unit-value {
-    font-size: clamp(20px, 5vw, 28px);
-    font-weight: 500;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
-  .unit-label {
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 4px;
-  }
+  .unit-value { font-size: clamp(18px, 4.5vw, 24px); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .unit-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
   .footer {
-    margin-top: 32px;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.6;
+    margin-top: 24px; text-align: center;
+    color: var(--muted); font-size: 13px; line-height: 1.6;
   }
   .footer strong { color: var(--accent-2); font-weight: 500; }
-  .arrived {
-    font-size: clamp(40px, 10vw, 64px);
-    font-weight: 300;
-    color: var(--accent-2);
-    line-height: 1.2;
+  .arrived { font-size: clamp(40px, 10vw, 64px); font-weight: 300; color: var(--accent-2); line-height: 1.2; }
+
+  /* ============ CAPSULES ============ */
+  .stats-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
   }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 16px; text-align: center;
+  }
+  .stat-value {
+    font-size: 28px; font-weight: 300; color: var(--accent-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 4px;
+  }
+  .section-title {
+    font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); margin: 24px 0 12px; padding: 0 4px;
+  }
+
+  .today-card {
+    background: linear-gradient(135deg, rgba(255, 126, 179, 0.15), rgba(74, 25, 66, 0.3));
+    border: 1px solid rgba(255, 126, 179, 0.3);
+    border-radius: 24px; padding: 28px 24px;
+    text-align: center; cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 15px 40px rgba(255, 126, 179, 0.15);
+  }
+  .today-card:active { transform: scale(0.98); }
+  .today-card.locked { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 15px 40px rgba(255, 126, 179, 0.15); }
+    50%      { box-shadow: 0 15px 50px rgba(255, 126, 179, 0.45); }
+  }
+  .today-icon { font-size: 48px; margin-bottom: 12px; }
+  .today-title { font-size: 18px; color: var(--accent-2); margin-bottom: 8px; font-weight: 500; }
+  .today-hint { font-size: 13px; color: var(--muted); }
+  .today-message {
+    font-size: 17px; line-height: 1.6; color: var(--text);
+    padding: 8px 4px; font-weight: 300;
+  }
+
+  .milestones {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .milestone {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 6px; text-align: center;
+    cursor: pointer; transition: transform .2s ease;
+    position: relative;
+  }
+  .milestone:active { transform: scale(0.95); }
+  .milestone.unlocked {
+    background: linear-gradient(135deg, rgba(255, 208, 132, 0.15), rgba(255, 126, 179, 0.15));
+    border-color: rgba(255, 208, 132, 0.4);
+  }
+  .milestone.locked { opacity: 0.4; }
+  .milestone-icon { font-size: 22px; margin-bottom: 4px; }
+  .milestone-title { font-size: 11px; color: var(--accent-2); font-weight: 500; }
+  .milestone.locked .milestone-icon { filter: grayscale(1); }
+  .milestone.locked .milestone-title { color: var(--muted); }
+
+  .history { display: flex; flex-direction: column; gap: 10px; }
+  .history-item {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 14px 16px;
+  }
+  .history-date { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 4px; }
+  .history-msg { font-size: 14px; line-height: 1.5; color: var(--text); font-weight: 300; }
+  .history-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 20px; }
+
+  /* ============ JEU MÉMOIRE ============ */
+  .game-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+  .game-board {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    aspect-ratio: 1; margin-bottom: 16px;
+  }
+  .card {
+    position: relative; cursor: pointer; perspective: 1000px;
+  }
+  .card-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d; transition: transform .5s;
+  }
+  .card.flipped .card-inner, .card.matched .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    font-size: clamp(28px, 7vw, 40px);
+  }
+  .card-front {
+    background: linear-gradient(135deg, rgba(255, 126, 179, 0.2), rgba(74, 25, 66, 0.4));
+    border: 1px solid rgba(255, 126, 179, 0.3);
+  }
+  .card-front::after {
+    content: '♥'; color: rgba(255, 126, 179, 0.4); font-size: clamp(20px, 5vw, 28px);
+  }
+  .card-back {
+    background: linear-gradient(135deg, rgba(255, 208, 132, 0.15), rgba(255, 126, 179, 0.2));
+    border: 1px solid rgba(255, 208, 132, 0.4);
+    transform: rotateY(180deg);
+  }
+  .card.matched .card-back { animation: matched .5s ease; }
+  @keyframes matched {
+    0%, 100% { transform: rotateY(180deg) scale(1); }
+    50%      { transform: rotateY(180deg) scale(1.1); }
+  }
+  .game-actions { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text); padding: 14px; border-radius: 14px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: transform .15s ease, background .2s ease;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--bg-1); border: none;
+  }
+  .win-banner {
+    background: linear-gradient(135deg, rgba(255, 208, 132, 0.2), rgba(255, 126, 179, 0.2));
+    border: 1px solid rgba(255, 208, 132, 0.5);
+    border-radius: 18px; padding: 20px; margin-bottom: 16px; text-align: center;
+    animation: fadeIn .5s ease;
+  }
+  .win-banner h3 { color: var(--gold); margin-bottom: 8px; font-weight: 500; }
+  .win-banner p { color: var(--text); font-size: 14px; font-weight: 300; }
+
+  /* ============ NAVIGATION ============ */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(26, 10, 46, 0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--card-border);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 640px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  }
+  .nav-btn {
+    background: transparent; border: none; color: var(--muted);
+    padding: 8px 4px; border-radius: 12px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: color .2s ease, background .2s ease;
+    font-family: inherit; font-size: 11px; letter-spacing: 0.05em;
+  }
+  .nav-btn .nav-icon { font-size: 22px; }
+  .nav-btn.active { color: var(--accent-2); background: rgba(255, 126, 179, 0.1); }
+  .nav-btn:active { transform: scale(0.95); }
+
+  /* ============ MODAL ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(10, 4, 24, 0.85);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 20; display: none; align-items: center; justify-content: center;
+    padding: 24px; animation: fadeIn .25s ease;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: linear-gradient(135deg, var(--bg-2), var(--bg-3));
+    border: 1px solid rgba(255, 126, 179, 0.3);
+    border-radius: 24px; padding: 32px 24px; max-width: 440px; width: 100%;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    animation: pop .35s cubic-bezier(.4, 1.5, .5, 1);
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .modal-icon { font-size: 56px; margin-bottom: 12px; }
+  .modal-title { font-size: 20px; color: var(--accent-2); font-weight: 500; margin-bottom: 16px; }
+  .modal-msg { font-size: 16px; line-height: 1.6; font-weight: 300; margin-bottom: 24px; }
+  .modal-close {
+    background: var(--accent); color: var(--bg-1); border: none;
+    padding: 12px 32px; border-radius: 14px; font-size: 15px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+  }
+
   @media (max-width: 380px) {
-    .breakdown { grid-template-columns: repeat(2, 1fr); }
-    .hero { padding: 36px 20px; }
+    .breakdown, .milestones { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
 <body>
   <div class="hearts" id="hearts"></div>
-  <div class="container">
+
+  <div class="app">
     <div class="label">Berlin → Strasbourg</div>
-    <h1 class="title">Avant de te retrouver</h1>
-    <div class="hero" id="hero">
-      <div class="big-number" id="hours">--</div>
-      <div class="big-label" id="bigLabel">heures restantes</div>
-      <div class="breakdown" id="breakdown">
-        <div class="unit"><div class="unit-value" id="d">--</div><div class="unit-label">Jours</div></div>
-        <div class="unit"><div class="unit-value" id="h">--</div><div class="unit-label">Heures</div></div>
-        <div class="unit"><div class="unit-value" id="m">--</div><div class="unit-label">Minutes</div></div>
-        <div class="unit"><div class="unit-value" id="s">--</div><div class="unit-label">Secondes</div></div>
+
+    <!-- ============ VIEW: COMPTEUR ============ -->
+    <section class="view active" id="view-countdown">
+      <h1 class="title">Avant de te retrouver</h1>
+      <div class="hero" id="hero">
+        <div class="big-number" id="hours">--</div>
+        <div class="big-label" id="bigLabel">heures restantes</div>
+        <div class="breakdown">
+          <div class="unit"><div class="unit-value" id="d">--</div><div class="unit-label">Jours</div></div>
+          <div class="unit"><div class="unit-value" id="h">--</div><div class="unit-label">Heures</div></div>
+          <div class="unit"><div class="unit-value" id="m">--</div><div class="unit-label">Minutes</div></div>
+          <div class="unit"><div class="unit-value" id="s">--</div><div class="unit-label">Secondes</div></div>
+        </div>
       </div>
-    </div>
-    <p class="footer">
-      Arrivée prévue&nbsp;: <strong>mardi 30 juin 2026, 18&nbsp;h&nbsp;34</strong><br/>
-      Gare de Strasbourg&nbsp;💫
-    </p>
+      <p class="footer">
+        Arrivée prévue&nbsp;: <strong>mardi 30 juin 2026, 18&nbsp;h&nbsp;34</strong><br/>
+        Gare de Strasbourg&nbsp;💫
+      </p>
+    </section>
+
+    <!-- ============ VIEW: CAPSULES ============ -->
+    <section class="view" id="view-capsules">
+      <h1 class="title">Tes capsules</h1>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="streakValue">0</div>
+          <div class="stat-label">🔥 Jours d'affilée</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="openedCount">0</div>
+          <div class="stat-label">💌 Capsules ouvertes</div>
+        </div>
+      </div>
+
+      <div class="section-title">Aujourd'hui</div>
+      <div id="todayContainer"></div>
+
+      <div class="section-title">Paliers</div>
+      <div class="milestones" id="milestones"></div>
+
+      <div class="section-title">Tes capsules précédentes</div>
+      <div class="history" id="history"></div>
+    </section>
+
+    <!-- ============ VIEW: JEU ============ -->
+    <section class="view" id="view-game">
+      <h1 class="title">Jeu mémoire</h1>
+
+      <div class="game-stats">
+        <div class="stat-card">
+          <div class="stat-value" id="gameTime">0s</div>
+          <div class="stat-label">Temps</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="gameMoves">0</div>
+          <div class="stat-label">Coups</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="gameBest">—</div>
+          <div class="stat-label">Record</div>
+        </div>
+      </div>
+
+      <div id="winBanner"></div>
+      <div class="game-board" id="board"></div>
+      <div class="game-actions">
+        <button class="btn primary" id="newGame">Nouvelle partie</button>
+      </div>
+    </section>
   </div>
 
-<script>
-  // Date cible : 30 juin 2026, 18:34, heure de Strasbourg (Europe/Paris, CEST = UTC+2)
-  const TARGET = new Date('2026-06-30T18:34:00+02:00').getTime();
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <button class="nav-btn active" data-view="countdown">
+        <span class="nav-icon">⏱</span><span>Compteur</span>
+      </button>
+      <button class="nav-btn" data-view="capsules">
+        <span class="nav-icon">💌</span><span>Capsules</span>
+      </button>
+      <button class="nav-btn" data-view="game">
+        <span class="nav-icon">🎴</span><span>Jeu</span>
+      </button>
+    </div>
+  </nav>
 
-  const elHours = document.getElementById('hours');
-  const elBigLabel = document.getElementById('bigLabel');
-  const elD = document.getElementById('d');
-  const elH = document.getElementById('h');
-  const elM = document.getElementById('m');
-  const elS = document.getElementById('s');
-  const elHero = document.getElementById('hero');
+  <!-- ============ MODAL ============ -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-icon" id="modalIcon">💌</div>
+      <div class="modal-title" id="modalTitle">Capsule du jour</div>
+      <div class="modal-msg" id="modalMsg"></div>
+      <button class="modal-close" id="modalClose">Fermer</button>
+    </div>
+  </div>
 
-  function pad(n) { return String(n).padStart(2, '0'); }
+  <script src="content.js"></script>
+  <script>
+    'use strict';
 
-  function update() {
-    const now = Date.now();
-    const diff = TARGET - now;
+    // ========== Date cible ==========
+    const TARGET = new Date('2026-06-30T18:34:00+02:00').getTime();
+    const START_OFFSET_DAYS = 90; // pour les capsules : on indexe depuis ~3 mois avant la cible
 
-    if (diff <= 0) {
-      elHero.innerHTML = '<div class="arrived">Tu es là 💕</div><p style="margin-top:16px;color:var(--muted)">Bienvenue à la maison.</p>';
-      return;
+    // ========== Helpers ==========
+    function todayKey() {
+      const d = new Date();
+      const off = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - off * 60000);
+      return local.toISOString().slice(0, 10);
     }
-    const totalHours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    const hours = Math.floor((diff % 86400000) / 3600000);
-    const minutes = Math.floor((diff % 3600000) / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
+    function yesterdayKey() {
+      const d = new Date(Date.now() - 86400000);
+      const off = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - off * 60000);
+      return local.toISOString().slice(0, 10);
+    }
+    function formatDateFr(iso) {
+      const d = new Date(iso + 'T12:00:00');
+      return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    function pad(n) { return String(n).padStart(2, '0'); }
 
-    elHours.textContent = totalHours.toLocaleString('fr-FR');
-    elBigLabel.textContent = totalHours <= 1 ? 'heure restante' : 'heures restantes';
-    elD.textContent = pad(days);
-    elH.textContent = pad(hours);
-    elM.textContent = pad(minutes);
-    elS.textContent = pad(seconds);
-  }
+    // ========== State (localStorage) ==========
+    const LS_KEY = 'compteur_retour_v1';
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(LS_KEY)) || {};
+      } catch { return {}; }
+    }
+    function saveState(s) {
+      localStorage.setItem(LS_KEY, JSON.stringify(s));
+    }
+    let state = Object.assign({
+      opened: {},       // { "YYYY-MM-DD": capsuleIndex }
+      streak: 0,
+      lastOpenDate: null,
+      memoryBestTime: null,
+      memoryBestMoves: null
+    }, loadState());
 
-  update();
-  setInterval(update, 1000);
+    function persist() { saveState(state); }
 
-  // Petits cœurs flottants
-  const heartsEl = document.getElementById('hearts');
-  const symbols = ['❤', '💕', '✦', '♥'];
-  for (let i = 0; i < 14; i++) {
-    const s = document.createElement('span');
-    s.className = 'heart';
-    s.textContent = symbols[i % symbols.length];
-    s.style.left = (Math.random() * 100) + '%';
-    s.style.animationDelay = (Math.random() * 12) + 's';
-    s.style.animationDuration = (10 + Math.random() * 8) + 's';
-    s.style.fontSize = (12 + Math.random() * 16) + 'px';
-    heartsEl.appendChild(s);
-  }
-</script>
+    // ========== Compteur ==========
+    const elHours = document.getElementById('hours');
+    const elBigLabel = document.getElementById('bigLabel');
+    const elD = document.getElementById('d');
+    const elH = document.getElementById('h');
+    const elM = document.getElementById('m');
+    const elS = document.getElementById('s');
+    const elHero = document.getElementById('hero');
+
+    function updateCountdown() {
+      const diff = TARGET - Date.now();
+      if (diff <= 0) {
+        elHero.innerHTML = '<div class="arrived">Tu es là 💕</div><p style="margin-top:16px;color:var(--muted)">Bienvenue à la maison.</p>';
+        return 0;
+      }
+      const totalHours = Math.floor(diff / 3600000);
+      elHours.textContent = totalHours.toLocaleString('fr-FR');
+      elBigLabel.textContent = totalHours <= 1 ? 'heure restante' : 'heures restantes';
+      elD.textContent = pad(Math.floor(diff / 86400000));
+      elH.textContent = pad(Math.floor((diff % 86400000) / 3600000));
+      elM.textContent = pad(Math.floor((diff % 3600000) / 60000));
+      elS.textContent = pad(Math.floor((diff % 60000) / 1000));
+      return diff;
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    function daysRemaining() {
+      return Math.max(0, Math.ceil((TARGET - Date.now()) / 86400000));
+    }
+
+    // ========== Modal ==========
+    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMsg = document.getElementById('modalMsg');
+    document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('show'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); });
+    function showModal(icon, title, msg) {
+      modalIcon.textContent = icon;
+      modalTitle.textContent = title;
+      modalMsg.textContent = msg;
+      modal.classList.add('show');
+    }
+
+    // ========== Capsules ==========
+    const todayContainer = document.getElementById('todayContainer');
+    const milestonesEl = document.getElementById('milestones');
+    const historyEl = document.getElementById('history');
+    const streakValueEl = document.getElementById('streakValue');
+    const openedCountEl = document.getElementById('openedCount');
+
+    function capsuleIndexForToday() {
+      // Indexe les capsules par "jour de l'attente" : plus elle utilise l'app, plus l'index avance.
+      // On utilise le nombre de jours déjà ouverts comme curseur.
+      return Object.keys(state.opened).length;
+    }
+
+    function openTodayCapsule() {
+      const k = todayKey();
+      if (state.opened[k] !== undefined) return; // déjà ouverte
+
+      const idx = capsuleIndexForToday();
+      const messages = window.APP_CONTENT.capsules;
+      const msg = messages[Math.min(idx, messages.length - 1)];
+
+      state.opened[k] = idx;
+
+      // Streak
+      if (state.lastOpenDate === yesterdayKey()) state.streak += 1;
+      else if (state.lastOpenDate === k) { /* déjà compté */ }
+      else state.streak = 1;
+      state.lastOpenDate = k;
+
+      persist();
+      showModal('💌', "Ta capsule du jour", msg);
+      renderCapsules();
+    }
+
+    function renderCapsules() {
+      // Stats
+      streakValueEl.textContent = state.streak;
+      openedCountEl.textContent = Object.keys(state.opened).length;
+
+      // Today's card
+      const k = todayKey();
+      const messages = window.APP_CONTENT.capsules;
+      todayContainer.innerHTML = '';
+      const card = document.createElement('div');
+      card.className = 'today-card';
+      if (state.opened[k] !== undefined) {
+        const idx = state.opened[k];
+        const msg = messages[Math.min(idx, messages.length - 1)];
+        card.innerHTML = `
+          <div class="today-icon">💖</div>
+          <div class="today-title">Déjà ouverte aujourd'hui</div>
+          <div class="today-message">"${msg}"</div>
+          <div class="today-hint" style="margin-top:10px">Reviens demain pour la prochaine 💕</div>
+        `;
+      } else {
+        card.classList.add('locked');
+        card.innerHTML = `
+          <div class="today-icon">💌</div>
+          <div class="today-title">Une capsule t'attend</div>
+          <div class="today-hint">Tape pour l'ouvrir</div>
+        `;
+        card.addEventListener('click', openTodayCapsule);
+      }
+      todayContainer.appendChild(card);
+
+      // Milestones
+      milestonesEl.innerHTML = '';
+      const remaining = daysRemaining();
+      const thresholds = Object.keys(window.APP_CONTENT.milestones)
+        .map(Number).sort((a, b) => b - a);
+      thresholds.forEach(t => {
+        const m = window.APP_CONTENT.milestones[t];
+        const unlocked = remaining <= t;
+        const tile = document.createElement('div');
+        tile.className = 'milestone ' + (unlocked ? 'unlocked' : 'locked');
+        tile.innerHTML = `
+          <div class="milestone-icon">${unlocked ? m.icon : '🔒'}</div>
+          <div class="milestone-title">${m.title}</div>
+        `;
+        if (unlocked) tile.addEventListener('click', () => showModal(m.icon, m.title, m.message));
+        else tile.addEventListener('click', () => showModal('🔒', m.title, `Cette capsule s'ouvrira à ${m.title}.`));
+        milestonesEl.appendChild(tile);
+      });
+
+      // History
+      historyEl.innerHTML = '';
+      const entries = Object.entries(state.opened).sort((a, b) => b[0].localeCompare(a[0]));
+      if (entries.length === 0) {
+        historyEl.innerHTML = '<div class="history-empty">Tes capsules ouvertes apparaîtront ici.</div>';
+      } else {
+        entries.forEach(([date, idx]) => {
+          const msg = messages[Math.min(idx, messages.length - 1)];
+          const item = document.createElement('div');
+          item.className = 'history-item';
+          item.innerHTML = `
+            <div class="history-date">${formatDateFr(date)}</div>
+            <div class="history-msg">${msg}</div>
+          `;
+          historyEl.appendChild(item);
+        });
+      }
+    }
+
+    // ========== Jeu mémoire ==========
+    const boardEl = document.getElementById('board');
+    const gameTimeEl = document.getElementById('gameTime');
+    const gameMovesEl = document.getElementById('gameMoves');
+    const gameBestEl = document.getElementById('gameBest');
+    const winBanner = document.getElementById('winBanner');
+    document.getElementById('newGame').addEventListener('click', startGame);
+
+    let gameState = null;
+
+    function startGame() {
+      const pairs = window.APP_CONTENT.memoryPairs;
+      const deck = [...pairs, ...pairs]
+        .map(v => ({ v, k: Math.random() }))
+        .sort((a, b) => a.k - b.k)
+        .map(o => o.v);
+
+      gameState = {
+        deck,
+        flipped: [],
+        matched: new Set(),
+        moves: 0,
+        startTime: Date.now(),
+        timer: null,
+        locked: false,
+        won: false
+      };
+
+      winBanner.innerHTML = '';
+      boardEl.innerHTML = '';
+      deck.forEach((v, i) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.idx = i;
+        const valueHtml = typeof v === 'string' ? v : `<img src="${v.img}" style="width:80%;height:80%;object-fit:cover;border-radius:8px"/>`;
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="card-face card-front"></div>
+            <div class="card-face card-back">${valueHtml}</div>
+          </div>
+        `;
+        card.addEventListener('click', () => flipCard(i));
+        boardEl.appendChild(card);
+      });
+
+      gameState.timer = setInterval(updateGameTime, 1000);
+      updateGameTime();
+      updateBestDisplay();
+      gameMovesEl.textContent = '0';
+    }
+
+    function updateGameTime() {
+      if (!gameState) return;
+      const s = Math.floor((Date.now() - gameState.startTime) / 1000);
+      gameTimeEl.textContent = s + 's';
+    }
+
+    function updateBestDisplay() {
+      if (state.memoryBestTime != null) {
+        gameBestEl.textContent = state.memoryBestTime + 's';
+      } else {
+        gameBestEl.textContent = '—';
+      }
+    }
+
+    function flipCard(i) {
+      if (!gameState || gameState.locked || gameState.won) return;
+      if (gameState.matched.has(i)) return;
+      if (gameState.flipped.includes(i)) return;
+      const cards = boardEl.querySelectorAll('.card');
+      const cardEl = cards[i];
+      cardEl.classList.add('flipped');
+      gameState.flipped.push(i);
+
+      if (gameState.flipped.length === 2) {
+        gameState.moves += 1;
+        gameMovesEl.textContent = gameState.moves;
+        const [a, b] = gameState.flipped;
+        const va = gameState.deck[a], vb = gameState.deck[b];
+        const same = (typeof va === 'string' && typeof vb === 'string')
+          ? va === vb
+          : (va.img && vb.img && va.img === vb.img);
+        if (same) {
+          gameState.matched.add(a); gameState.matched.add(b);
+          cards[a].classList.add('matched'); cards[b].classList.add('matched');
+          gameState.flipped = [];
+          if (gameState.matched.size === gameState.deck.length) winGame();
+        } else {
+          gameState.locked = true;
+          setTimeout(() => {
+            cards[a].classList.remove('flipped');
+            cards[b].classList.remove('flipped');
+            gameState.flipped = [];
+            gameState.locked = false;
+          }, 800);
+        }
+      }
+    }
+
+    function winGame() {
+      gameState.won = true;
+      clearInterval(gameState.timer);
+      const seconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+      const isRecord =
+        state.memoryBestTime == null ||
+        seconds < state.memoryBestTime;
+      if (isRecord) {
+        state.memoryBestTime = seconds;
+        state.memoryBestMoves = gameState.moves;
+        persist();
+        updateBestDisplay();
+      }
+      winBanner.innerHTML = `
+        <h3>🎉 Bravo !</h3>
+        <p>${seconds}s • ${gameState.moves} coups${isRecord ? ' • <strong style="color:var(--gold)">Nouveau record !</strong>' : ''}</p>
+        <p style="margin-top:8px">${window.APP_CONTENT.memoryWinMessage}</p>
+      `;
+    }
+
+    // ========== Navigation ==========
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById('view-' + view).classList.add('active');
+        if (view === 'capsules') renderCapsules();
+        if (view === 'game' && !gameState) startGame();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // Init
+    renderCapsules();
+
+    // Petits cœurs flottants
+    const heartsEl = document.getElementById('hearts');
+    const symbols = ['❤', '💕', '✦', '♥'];
+    for (let i = 0; i < 14; i++) {
+      const s = document.createElement('span');
+      s.className = 'heart';
+      s.textContent = symbols[i % symbols.length];
+      s.style.left = (Math.random() * 100) + '%';
+      s.style.animationDelay = (Math.random() * 14) + 's';
+      s.style.animationDuration = (12 + Math.random() * 8) + 's';
+      s.style.fontSize = (12 + Math.random() * 16) + 'px';
+      heartsEl.appendChild(s);
+    }
+  </script>
 </body>
 </html>
