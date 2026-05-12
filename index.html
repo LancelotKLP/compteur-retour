@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1a0a2e" />
+<title>Retour à Strasbourg</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9D%A4%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg-1: #1a0a2e;
+    --bg-2: #2d1b4e;
+    --bg-3: #4a1942;
+    --accent: #ff7eb3;
+    --accent-2: #ffb3c7;
+    --text: #fff5fb;
+    --muted: rgba(255, 245, 251, 0.65);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(ellipse at top, var(--bg-2) 0%, var(--bg-1) 50%, #0a0418 100%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255, 126, 179, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(74, 25, 66, 0.4) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hearts {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .heart {
+    position: absolute;
+    font-size: 18px;
+    opacity: 0;
+    animation: float 12s linear infinite;
+    filter: drop-shadow(0 0 8px rgba(255, 126, 179, 0.5));
+  }
+  @keyframes float {
+    0%   { transform: translateY(105vh) scale(0.6) rotate(-15deg); opacity: 0; }
+    10%  { opacity: 0.8; }
+    90%  { opacity: 0.8; }
+    100% { transform: translateY(-10vh) scale(1.1) rotate(15deg); opacity: 0; }
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 640px;
+    width: 100%;
+  }
+  .label {
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .title {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 300;
+    margin-bottom: 40px;
+    color: var(--accent-2);
+  }
+  .hero {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    padding: 48px 32px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+  }
+  .big-number {
+    font-size: clamp(80px, 22vw, 160px);
+    font-weight: 200;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, #ffd8e6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .big-label {
+    font-size: 18px;
+    color: var(--accent-2);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    margin-bottom: 36px;
+  }
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .unit {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 16px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .unit-value {
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 500;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .unit-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .footer {
+    margin-top: 32px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .footer strong { color: var(--accent-2); font-weight: 500; }
+  .arrived {
+    font-size: clamp(40px, 10vw, 64px);
+    font-weight: 300;
+    color: var(--accent-2);
+    line-height: 1.2;
+  }
+  @media (max-width: 380px) {
+    .breakdown { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 36px 20px; }
+  }
+</style>
+</head>
+<body>
+  <div class="hearts" id="hearts"></div>
+  <div class="container">
+    <div class="label">Berlin → Strasbourg</div>
+    <h1 class="title">Avant de te retrouver</h1>
+    <div class="hero" id="hero">
+      <div class="big-number" id="hours">--</div>
+      <div class="big-label" id="bigLabel">heures restantes</div>
+      <div class="breakdown" id="breakdown">
+        <div class="unit"><div class="unit-value" id="d">--</div><div class="unit-label">Jours</div></div>
+        <div class="unit"><div class="unit-value" id="h">--</div><div class="unit-label">Heures</div></div>
+        <div class="unit"><div class="unit-value" id="m">--</div><div class="unit-label">Minutes</div></div>
+        <div class="unit"><div class="unit-value" id="s">--</div><div class="unit-label">Secondes</div></div>
+      </div>
+    </div>
+    <p class="footer">
+      Arrivée prévue&nbsp;: <strong>mardi 30 juin 2026, 18&nbsp;h&nbsp;34</strong><br/>
+      Gare de Strasbourg&nbsp;💫
+    </p>
+  </div>
+
+<script>
+  // Date cible : 30 juin 2026, 18:34, heure de Strasbourg (Europe/Paris, CEST = UTC+2)
+  const TARGET = new Date('2026-06-30T18:34:00+02:00').getTime();
+
+  const elHours = document.getElementById('hours');
+  const elBigLabel = document.getElementById('bigLabel');
+  const elD = document.getElementById('d');
+  const elH = document.getElementById('h');
+  const elM = document.getElementById('m');
+  const elS = document.getElementById('s');
+  const elHero = document.getElementById('hero');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function update() {
+    const now = Date.now();
+    const diff = TARGET - now;
+
+    if (diff <= 0) {
+      elHero.innerHTML = '<div class="arrived">Tu es là 💕</div><p style="margin-top:16px;color:var(--muted)">Bienvenue à la maison.</p>';
+      return;
+    }
+    const totalHours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+
+    elHours.textContent = totalHours.toLocaleString('fr-FR');
+    elBigLabel.textContent = totalHours <= 1 ? 'heure restante' : 'heures restantes';
+    elD.textContent = pad(days);
+    elH.textContent = pad(hours);
+    elM.textContent = pad(minutes);
+    elS.textContent = pad(seconds);
+  }
+
+  update();
+  setInterval(update, 1000);
+
+  // Petits cœurs flottants
+  const heartsEl = document.getElementById('hearts');
+  const symbols = ['❤', '💕', '✦', '♥'];
+  for (let i = 0; i < 14; i++) {
+    const s = document.createElement('span');
+    s.className = 'heart';
+    s.textContent = symbols[i % symbols.length];
+    s.style.left = (Math.random() * 100) + '%';
+    s.style.animationDelay = (Math.random() * 12) + 's';
+    s.style.animationDuration = (10 + Math.random() * 8) + 's';
+    s.style.fontSize = (12 + Math.random() * 16) + 'px';
+    heartsEl.appendChild(s);
+  }
+</script>
+</body>
+</html>
