@@ -1,12 +1,26 @@
 -- ============================================================
--- Compteur Retour — Setup Supabase
+-- Compteur Retour — Setup Supabase (auth : pseudo + mot de passe)
 -- À copier-coller dans : Dashboard Supabase → SQL Editor → Run
 -- ============================================================
 
--- 1) Activer l'auth anonyme (à faire AUSSI dans le dashboard) :
---    Dashboard → Authentication → Providers → "Anonymous Sign-ins" → Enable
+-- ⚙️ Préalable côté dashboard Supabase :
+--   1. Authentication → Providers → Email → ACTIVÉ
+--      ↳ "Confirm email" → DÉSACTIVER (sinon les comptes restent unconfirmed)
+--   2. Authentication → Providers → Anonymous Sign-ins → DÉSACTIVER
+--   3. Authentication → Sign Up → laisser ouvert
 
--- 2) Tables ---------------------------------------------------
+-- ============================================================
+-- (Optionnel) RESET si tu as déjà exécuté l'ancien SQL :
+-- Décommente le bloc suivant pour repartir propre
+-- ============================================================
+-- delete from public.drawings;
+-- delete from public.profiles;
+-- delete from public.couples;
+-- delete from auth.users;   -- supprime aussi les anciens utilisateurs anonymes
+
+-- ============================================================
+-- 1) Tables
+-- ============================================================
 
 create table if not exists public.couples (
   id uuid primary key default gen_random_uuid(),
@@ -27,7 +41,7 @@ create table if not exists public.drawings (
   couple_id uuid not null references public.couples(id) on delete cascade,
   prompt_date date not null,
   prompt_text text not null,
-  image_data text not null,           -- PNG en data URL base64
+  image_data text not null,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   unique (user_id, prompt_date)
@@ -36,7 +50,7 @@ create table if not exists public.drawings (
 create index if not exists drawings_couple_date_idx
   on public.drawings (couple_id, prompt_date desc);
 
--- Trigger updated_at
+-- Trigger updated_at sur drawings
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end;
@@ -47,7 +61,33 @@ create trigger drawings_updated_at
   before update on public.drawings
   for each row execute function public.set_updated_at();
 
--- 3) Helper pour les policies --------------------------------
+-- ============================================================
+-- 2) Auto-création du profile à l'inscription
+-- ============================================================
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.profiles (id, pseudo)
+  values (
+    new.id,
+    coalesce(
+      new.raw_user_meta_data->>'pseudo',
+      split_part(new.email, '@', 1)
+    )
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ============================================================
+-- 3) Helper pour les policies
+-- ============================================================
 
 create or replace function public.my_couple_id()
 returns uuid language sql security definer stable as $$
@@ -55,13 +95,15 @@ returns uuid language sql security definer stable as $$
 $$;
 grant execute on function public.my_couple_id() to authenticated;
 
--- 4) RLS -----------------------------------------------------
+-- ============================================================
+-- 4) Row Level Security
+-- ============================================================
 
 alter table public.couples enable row level security;
 alter table public.profiles enable row level security;
 alter table public.drawings enable row level security;
 
--- Couples : lecture libre pour rejoindre via code, insert libre
+-- Couples
 drop policy if exists "couples_select" on public.couples;
 create policy "couples_select" on public.couples
   for select to authenticated using (true);
@@ -70,7 +112,7 @@ drop policy if exists "couples_insert" on public.couples;
 create policy "couples_insert" on public.couples
   for insert to authenticated with check (true);
 
--- Profiles : self ou même couple
+-- Profiles
 drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles
   for select to authenticated using (
@@ -86,7 +128,7 @@ drop policy if exists "profiles_update" on public.profiles;
 create policy "profiles_update" on public.profiles
   for update to authenticated using (id = auth.uid());
 
--- Drawings : tes dessins toujours visibles, ceux du couple seulement après minuit Paris
+-- Drawings : ses propres dessins toujours, ceux du couple après minuit Paris
 drop policy if exists "drawings_select" on public.drawings;
 create policy "drawings_select" on public.drawings
   for select to authenticated using (

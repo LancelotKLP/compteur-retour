@@ -289,36 +289,76 @@ function winGame() {
 }
 
 // =============================================================
-// SUPABASE + AUTH + COUPLE
+// SUPABASE + AUTH (pseudo + mot de passe) + COUPLE
 // =============================================================
 const sb = window.supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
+let myUser = null;        // auth user
 let myProfile = null;     // { id, couple_id, pseudo }
 let myCouple = null;      // { id, code }
 
-async function ensureSignedIn() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    const { error } = await sb.auth.signInAnonymously();
-    if (error) throw error;
+function pseudoToEmail(pseudo) {
+  const slug = pseudo.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  if (!slug) throw new Error("Pseudo invalide (lettres et chiffres seulement).");
+  return `${slug}@compteur.local`;
+}
+
+async function signUp(pseudo, password) {
+  if (password.length < 6) throw new Error("Le mot de passe doit faire au moins 6 caractères.");
+  const email = pseudoToEmail(pseudo);
+  const { data, error } = await sb.auth.signUp({
+    email, password, options: { data: { pseudo } }
+  });
+  if (error) {
+    const msg = (error.message || '').toLowerCase();
+    if (msg.includes('already') || msg.includes('registered')) {
+      throw new Error("Ce pseudo est déjà pris. Choisis-en un autre ou connecte-toi.");
+    }
+    throw new Error(error.message);
   }
-  const { data: { user } } = await sb.auth.getUser();
-  return user;
+  if (!data.session) {
+    // Email confirmation activée → souci côté Supabase
+    throw new Error("Confirmation email activée sur Supabase. Désactive-la dans Auth → Providers → Email.");
+  }
+  return data.user;
+}
+
+async function signIn(pseudo, password) {
+  const email = pseudoToEmail(pseudo);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw new Error("Pseudo ou mot de passe incorrect.");
+  return data.user;
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  myUser = null; myProfile = null; myCouple = null;
+  lastLoadedUpdatedAt = null;
+  resetCanvas();
 }
 
 async function loadProfile() {
-  const user = await ensureSignedIn();
-  const { data: profile } = await sb.from('profiles')
-    .select('*').eq('id', user.id).maybeSingle();
-  if (!profile || !profile.couple_id) {
-    myProfile = profile || null;
-    myCouple = null;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    myUser = null; myProfile = null; myCouple = null;
     return null;
   }
+  myUser = session.user;
+  const { data: profile } = await sb.from('profiles')
+    .select('*').eq('id', myUser.id).maybeSingle();
+  if (!profile) {
+    // Filet de sécurité si le trigger handle_new_user n'a pas créé le profile
+    const pseudo = myUser.user_metadata?.pseudo || myUser.email.split('@')[0];
+    await sb.from('profiles').insert({ id: myUser.id, pseudo });
+    const { data: created } = await sb.from('profiles').select('*').eq('id', myUser.id).maybeSingle();
+    myProfile = created;
+  } else {
+    myProfile = profile;
+  }
+  if (!myProfile?.couple_id) { myCouple = null; return { profile: myProfile, couple: null }; }
   const { data: couple } = await sb.from('couples')
-    .select('*').eq('id', profile.couple_id).maybeSingle();
-  myProfile = profile;
+    .select('*').eq('id', myProfile.couple_id).maybeSingle();
   myCouple = couple;
-  return { profile, couple };
+  return { profile: myProfile, couple };
 }
 
 function generateCoupleCode() {
@@ -328,94 +368,113 @@ function generateCoupleCode() {
   return c;
 }
 
-async function createCouple(pseudo) {
-  const user = await ensureSignedIn();
-  // Génère un code unique (rare collision, on retry max 3x)
-  let code, attempts = 0;
-  while (attempts < 3) {
-    code = generateCoupleCode();
-    const { data: couple, error } = await sb.from('couples')
-      .insert({ code }).select().single();
+async function createCouple() {
+  if (!myUser || !myProfile) throw new Error("Pas connecté.");
+  let attempts = 0;
+  while (attempts < 5) {
+    const code = generateCoupleCode();
+    const { data: couple, error } = await sb.from('couples').insert({ code }).select().single();
     if (!error) {
-      await sb.from('profiles').upsert({ id: user.id, couple_id: couple.id, pseudo });
-      return { couple, pseudo };
+      await sb.from('profiles').update({ couple_id: couple.id }).eq('id', myUser.id);
+      myProfile.couple_id = couple.id;
+      myCouple = couple;
+      return couple;
     }
     attempts++;
   }
-  throw new Error("Impossible de générer un code. Réessaie.");
+  throw new Error("Impossible de générer un code unique. Réessaie.");
 }
 
-async function joinCouple(code, pseudo) {
-  const user = await ensureSignedIn();
+async function joinCouple(code) {
+  if (!myUser || !myProfile) throw new Error("Pas connecté.");
   const { data: couple } = await sb.from('couples')
     .select('*').eq('code', code.toUpperCase()).maybeSingle();
   if (!couple) throw new Error("Code introuvable. Vérifie auprès de ton·a partenaire.");
-  await sb.from('profiles').upsert({ id: user.id, couple_id: couple.id, pseudo });
-  return { couple, pseudo };
+  await sb.from('profiles').update({ couple_id: couple.id }).eq('id', myUser.id);
+  myProfile.couple_id = couple.id;
+  myCouple = couple;
+  return couple;
 }
 
 async function leaveCouple() {
   if (!myProfile) return;
   await sb.from('profiles').update({ couple_id: null }).eq('id', myProfile.id);
-  myProfile = null; myCouple = null;
+  myProfile.couple_id = null;
+  myCouple = null;
 }
 
 // =============================================================
-// DESSIN — Onboarding
+// DESSIN — Onboarding (Auth → Couple → Main)
 // =============================================================
-const onboardingEl = document.getElementById('onboarding');
+const authView = document.getElementById('authView');
+const coupleView = document.getElementById('coupleView');
 const drawingMainEl = document.getElementById('drawingMain');
 const coupleInfoEl = document.getElementById('coupleInfo');
 
-document.getElementById('onCreateBtn').addEventListener('click', () => openCreateCoupleModal());
-document.getElementById('onJoinBtn').addEventListener('click', () => openJoinCoupleModal());
+// --- Auth view ---
+let authMode = 'signup'; // 'signup' | 'signin'
+const authPseudo = document.getElementById('authPseudo');
+const authPwd = document.getElementById('authPwd');
+const authSubmit = document.getElementById('authSubmit');
+const authError = document.getElementById('authError');
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
 
-function openCreateCoupleModal() {
-  showModal('💞', 'Créer un couple', '', `
+document.querySelectorAll('.tab-btn[data-mode]').forEach(b => {
+  b.addEventListener('click', () => {
+    authMode = b.dataset.mode;
+    document.querySelectorAll('.tab-btn[data-mode]').forEach(x => x.classList.toggle('active', x === b));
+    authTitle.textContent = authMode === 'signup' ? 'Inscription' : 'Connexion';
+    authSubtitle.textContent = authMode === 'signup'
+      ? "Crée ton compte avec un pseudo et un mot de passe. Tu pourras te reconnecter depuis n'importe quel appareil."
+      : "Reconnecte-toi avec le pseudo et le mot de passe que tu as choisis.";
+    authSubmit.textContent = authMode === 'signup' ? "S'inscrire" : "Se connecter";
+    authError.textContent = '';
+  });
+});
+
+authSubmit.addEventListener('click', async () => {
+  authError.textContent = '';
+  const pseudo = authPseudo.value.trim();
+  const pwd = authPwd.value;
+  if (!pseudo || !pwd) { authError.textContent = "Pseudo et mot de passe requis."; return; }
+  authSubmit.disabled = true;
+  authSubmit.textContent = '…';
+  try {
+    if (authMode === 'signup') await signUp(pseudo, pwd);
+    else await signIn(pseudo, pwd);
+    await loadProfile();
+    authPseudo.value = ''; authPwd.value = '';
+    renderDrawingView();
+  } catch (e) {
+    authError.textContent = e.message;
+  } finally {
+    authSubmit.disabled = false;
+    authSubmit.textContent = authMode === 'signup' ? "S'inscrire" : "Se connecter";
+  }
+});
+
+// --- Couple view ---
+document.getElementById('onCreateBtn').addEventListener('click', async () => {
+  try {
+    const couple = await createCouple();
+    showModal('🎉', 'Couple créé !', `Envoie ce code à ton·a partenaire pour qu'iel le rejoigne :`,
+      `<div class="code-display">${couple.code}</div>
+       <button class="btn primary" id="copyCodeBtn">Copier le code</button>`);
+    document.getElementById('copyCodeBtn').onclick = () => {
+      navigator.clipboard?.writeText(couple.code);
+      document.getElementById('copyCodeBtn').textContent = "Copié ✓";
+    };
+    renderDrawingView();
+  } catch (e) {
+    alert(e.message);
+  }
+});
+
+document.getElementById('onJoinBtn').addEventListener('click', () => {
+  showModal('🔑', 'Rejoindre un couple', 'Entre le code à 6 caractères reçu de ton·a partenaire :', `
     <div class="modal-form">
-      <label>Ton pseudo</label>
-      <input class="input" id="createPseudo" maxlength="20" placeholder="Ton prénom"/>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" id="createCancel">Annuler</button>
-      <button class="btn primary" id="createSubmit">Créer</button>
-    </div>
-    <div class="modal-error" id="createError"></div>`);
-  modalClose.style.display = 'none';
-
-  document.getElementById('createCancel').onclick = () => { modal.classList.remove('show'); modalClose.style.display = ''; };
-  document.getElementById('createSubmit').onclick = async () => {
-    const pseudo = document.getElementById('createPseudo').value.trim();
-    const errEl = document.getElementById('createError');
-    if (!pseudo) { errEl.textContent = "Pseudo requis."; return; }
-    document.getElementById('createSubmit').disabled = true;
-    try {
-      const { couple } = await createCouple(pseudo);
-      myProfile = { id: (await sb.auth.getUser()).data.user.id, couple_id: couple.id, pseudo };
-      myCouple = couple;
-      showModal('🎉', 'Couple créé !', `Envoie ce code à ton·a partenaire pour qu'iel rejoigne :`,
-        `<div class="code-display">${couple.code}</div>
-         <button class="btn primary" id="copyCodeBtn">Copier le code</button>`);
-      modalClose.style.display = '';
-      document.getElementById('copyCodeBtn').onclick = () => {
-        navigator.clipboard?.writeText(couple.code);
-        document.getElementById('copyCodeBtn').textContent = "Copié ✓";
-      };
-      renderDrawingView();
-    } catch (e) {
-      errEl.textContent = e.message;
-      document.getElementById('createSubmit').disabled = false;
-    }
-  };
-}
-
-function openJoinCoupleModal() {
-  showModal('🔑', 'Rejoindre un couple', '', `
-    <div class="modal-form">
-      <label>Code reçu</label>
       <input class="input code-input" id="joinCode" maxlength="6" placeholder="XXXXXX" autocapitalize="characters"/>
-      <label>Ton pseudo</label>
-      <input class="input" id="joinPseudo" maxlength="20" placeholder="Ton prénom"/>
     </div>
     <div class="modal-actions">
       <button class="btn" id="joinCancel">Annuler</button>
@@ -423,18 +482,14 @@ function openJoinCoupleModal() {
     </div>
     <div class="modal-error" id="joinError"></div>`);
   modalClose.style.display = 'none';
-
   document.getElementById('joinCancel').onclick = () => { modal.classList.remove('show'); modalClose.style.display = ''; };
   document.getElementById('joinSubmit').onclick = async () => {
     const code = document.getElementById('joinCode').value.trim().toUpperCase();
-    const pseudo = document.getElementById('joinPseudo').value.trim();
     const errEl = document.getElementById('joinError');
-    if (!code || !pseudo) { errEl.textContent = "Code et pseudo requis."; return; }
+    if (!code) { errEl.textContent = "Code requis."; return; }
     document.getElementById('joinSubmit').disabled = true;
     try {
-      const { couple } = await joinCouple(code, pseudo);
-      myProfile = { id: (await sb.auth.getUser()).data.user.id, couple_id: couple.id, pseudo };
-      myCouple = couple;
+      await joinCouple(code);
       modal.classList.remove('show');
       modalClose.style.display = '';
       renderDrawingView();
@@ -443,7 +498,13 @@ function openJoinCoupleModal() {
       document.getElementById('joinSubmit').disabled = false;
     }
   };
-}
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (!confirm("Te déconnecter ?")) return;
+  await signOut();
+  renderDrawingView();
+});
 
 // =============================================================
 // DESSIN — Prompt du jour
@@ -750,7 +811,10 @@ function renderCoupleInfo() {
   if (!myProfile || !myCouple) { coupleInfoEl.innerHTML = ''; return; }
   coupleInfoEl.innerHTML = `
     <div>Couple <strong>${myCouple.code}</strong> · ${myProfile.pseudo}</div>
-    <button id="leaveBtn">Quitter</button>`;
+    <div style="display:flex;gap:12px">
+      <button id="leaveBtn">Quitter</button>
+      <button id="signoutBtn">Déconnexion</button>
+    </div>`;
   document.getElementById('leaveBtn').onclick = async () => {
     if (!confirm("Quitter ce couple ?")) return;
     await leaveCouple();
@@ -758,15 +822,30 @@ function renderCoupleInfo() {
     resetCanvas();
     renderDrawingView();
   };
+  document.getElementById('signoutBtn').onclick = async () => {
+    if (!confirm("Te déconnecter ?")) return;
+    await signOut();
+    renderDrawingView();
+  };
 }
 
 async function renderDrawingView() {
-  if (!myProfile || !myCouple) {
-    onboardingEl.style.display = 'block';
+  // 3 états : pas connecté / connecté sans couple / connecté avec couple
+  if (!myUser) {
+    authView.style.display = 'block';
+    coupleView.style.display = 'none';
     drawingMainEl.style.display = 'none';
     return;
   }
-  onboardingEl.style.display = 'none';
+  if (!myCouple) {
+    authView.style.display = 'none';
+    coupleView.style.display = 'block';
+    drawingMainEl.style.display = 'none';
+    document.getElementById('coupleViewPseudo').textContent = myProfile?.pseudo || '';
+    return;
+  }
+  authView.style.display = 'none';
+  coupleView.style.display = 'none';
   drawingMainEl.style.display = 'block';
   renderCoupleInfo();
   promptTextEl.textContent = todayPrompt();

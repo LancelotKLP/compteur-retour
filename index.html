@@ -215,6 +215,17 @@
   .input:focus { border-color: var(--accent); }
   .input.code-input { text-align: center; letter-spacing: 0.3em; font-weight: 600; font-size: 18px; }
 
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.05); padding: 4px; border-radius: 12px;
+  }
+  .tab-btn {
+    flex: 1; background: transparent; border: none; color: var(--muted);
+    padding: 10px; border-radius: 8px; font-family: inherit; font-size: 14px;
+    cursor: pointer; transition: background .15s ease, color .15s ease;
+  }
+  .tab-btn.active { background: rgba(255, 126, 179, 0.15); color: var(--accent-2); }
+
   .prompt-card {
     background: linear-gradient(135deg, rgba(255, 126, 179, 0.18), rgba(74, 25, 66, 0.35));
     border: 1px solid rgba(255, 126, 179, 0.3);
@@ -569,12 +580,30 @@
     <section class="view" id="view-drawing">
       <h1 class="title">Dessin du jour</h1>
 
-      <div id="onboarding" style="display:none">
+      <!-- État 1 : pas connecté → Auth -->
+      <div id="authView" style="display:none">
         <div class="onboarding-card">
-          <h2>Bienvenue 💕</h2>
-          <p>Pour partager vos dessins, créez votre couple ou rejoignez celui de l'autre avec un code.</p>
+          <h2 id="authTitle">Inscription</h2>
+          <p id="authSubtitle">Crée ton compte avec un pseudo et un mot de passe. Tu pourras te reconnecter depuis n'importe quel appareil.</p>
+          <div class="tabs">
+            <button class="tab-btn active" data-mode="signup">Inscription</button>
+            <button class="tab-btn" data-mode="signin">Connexion</button>
+          </div>
+          <input class="input" id="authPseudo" placeholder="Pseudo" maxlength="20" autocapitalize="off" autocorrect="off" />
+          <input class="input" id="authPwd" type="password" placeholder="Mot de passe (6+ caractères)" />
+          <button class="btn primary" id="authSubmit">S'inscrire</button>
+          <div class="modal-error" id="authError"></div>
+        </div>
+      </div>
+
+      <!-- État 2 : connecté mais pas de couple → choisir couple -->
+      <div id="coupleView" style="display:none">
+        <div class="onboarding-card">
+          <h2>Salut <span id="coupleViewPseudo">…</span> 💕</h2>
+          <p>Crée votre couple ou rejoins celui de ton·a partenaire avec son code.</p>
           <button class="btn primary" id="onCreateBtn">Créer un couple</button>
           <button class="btn" id="onJoinBtn">Rejoindre un couple</button>
+          <button class="btn danger" id="logoutBtn" style="margin-top: 8px">Se déconnecter</button>
         </div>
       </div>
 

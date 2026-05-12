@@ -19,18 +19,20 @@ Cette clé bypass toutes les règles RLS — elle ne doit jamais être commitée
 
 ## 1) Setup Supabase (à faire 1 seule fois)
 
-### a) Exécuter le SQL
-Dashboard Supabase → **SQL Editor** → **+ New query** → copie-colle le contenu de [supabase-setup.sql](supabase-setup.sql) → **Run**.
+### a) Configurer l'auth (dashboard)
+Dashboard Supabase → **Authentication** :
+- **Providers → Email** → activé ; **"Confirm email"** → **DÉSACTIVER** (sinon les comptes restent unconfirmed parce qu'on utilise des emails fake basés sur le pseudo).
+- **Providers → Anonymous Sign-ins** → **DÉSACTIVER** (on n'utilise plus l'auth anonyme).
+
+### b) Exécuter le SQL
+Dashboard → **SQL Editor** → **+ New query** → copie-colle [supabase-setup.sql](supabase-setup.sql) → **Run**.
 
 Ça crée :
 - 3 tables : `couples`, `profiles`, `drawings`
-- Les Row Level Security policies (vous ne voyez les dessins de l'autre qu'**après minuit Paris**)
-- Un helper SQL `my_couple_id()`
+- Un trigger `handle_new_user` qui crée auto le profile à l'inscription
+- Les RLS policies (révélation des dessins du partenaire **après minuit Paris**)
 
-### b) Activer l'authentification anonyme
-Dashboard → **Authentication** → **Providers** → trouve **Anonymous Sign-ins** → **Enable**.
-
-Sans ça, l'app n'arrive pas à créer de comptes.
+⚠️ Si tu avais déjà exécuté l'ancienne version du SQL (auth anonyme) : décommente le bloc **RESET** en haut du fichier avant de relancer, pour nettoyer les anciennes données.
 
 ---
 
@@ -45,15 +47,17 @@ Pour redéployer après modif : `git push` (Pages reconstruit automatiquement).
 ## 3) Premier lancement (toi)
 
 1. Va sur l'URL.
-2. Onglet **🎨 Dessin** → **Créer un couple**.
-3. Entre ton pseudo.
-4. **Note bien le code à 6 caractères affiché** — copie-le.
+2. Onglet **🎨 Dessin** → onglet **Inscription** → choisis un pseudo + mot de passe → **S'inscrire**.
+3. Sur l'écran suivant → **Créer un couple**. Un code à 6 caractères s'affiche.
+4. **Note bien ce code** ou tape "Copier le code".
 
 ## 4) Premier lancement (ta copine)
 
 1. Tu lui envoies l'URL + le code.
-2. Onglet **🎨 Dessin** → **Rejoindre un couple**.
-3. Entre le code + son pseudo.
+2. Onglet **🎨 Dessin** → **Inscription** → son pseudo + mot de passe → **S'inscrire**.
+3. Sur l'écran suivant → **Rejoindre un couple** → entre le code reçu.
+
+**Sur un nouvel appareil** : onglet **Connexion** → pseudo + mot de passe → reconnectée à votre couple automatiquement, avec tous les dessins.
 
 Vous êtes liés. Chaque matin, ouvrez l'app, dessinez. À minuit Paris, les deux dessins apparaissent dans "Dessins d'aujourd'hui" et s'archivent dans la galerie.
 
