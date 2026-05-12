@@ -1,127 +1,130 @@
 # Compteur — Retour de Berlin
 
-Web app + raccourci iOS pour compter les heures jusqu'au **30 juin 2026, 18 h 34** à Strasbourg.
+Web app pour compter les heures jusqu'au **30 juin 2026, 18 h 34** à Strasbourg, avec :
+- **Compteur** en temps réel
+- **Capsules quotidiennes** + paliers J-X + streak
+- **Jeu mémoire** avec vos photos
+- **Dessin du jour partagé** : un sujet à 8 h, vous dessinez chacun de votre côté, révélation à minuit
 
 ---
 
-## 1) Déployer la web app sur Vercel (le plus rapide)
+## ⚠️ Avant tout — sécurité
 
-```bash
-cd /Users/maelkempf-lepape/Downloads/compteur-retour
-npx vercel --prod
-```
+La `service_role` key Supabase a fuité dans la conversation. **Régénère-la immédiatement** :
+Dashboard Supabase → Project Settings → API → bouton **Reset service_role secret**.
 
-Suis les prompts (connexion, accepter les valeurs par défaut). Tu obtiens une URL du type `https://compteur-retour.vercel.app`.
-
-**Alternative GitHub Pages :**
-```bash
-cd /Users/maelkempf-lepape/Downloads/compteur-retour
-git init && git add . && git commit -m "Compteur retour"
-gh repo create compteur-retour --public --source=. --push
-gh api -X POST /repos/:owner/compteur-retour/pages -f source.branch=main -f source.path=/
-```
-URL : `https://<ton-username>.github.io/compteur-retour/`
+Cette clé bypass toutes les règles RLS — elle ne doit jamais être commitée ni partagée. Le front n'utilise que l'`anon` key (faite pour être publique).
 
 ---
 
-## 2) Raccourci iOS — Notification quotidienne à 9 h
+## 1) Setup Supabase (à faire 1 seule fois)
 
-Sur l'iPhone de ta copine, ouvre l'app **Raccourcis** (Shortcuts, native iOS) et crée le raccourci suivant :
+### a) Exécuter le SQL
+Dashboard Supabase → **SQL Editor** → **+ New query** → copie-colle le contenu de [supabase-setup.sql](supabase-setup.sql) → **Run**.
 
-### Raccourci « Compteur Berlin → Strasbourg »
+Ça crée :
+- 3 tables : `couples`, `profiles`, `drawings`
+- Les Row Level Security policies (vous ne voyez les dessins de l'autre qu'**après minuit Paris**)
+- Un helper SQL `my_couple_id()`
 
-1. App Raccourcis → onglet **Raccourcis** → bouton **+** en haut à droite.
-2. Renomme-le « Compteur Strasbourg ».
-3. Ajoute les actions dans cet ordre exact :
+### b) Activer l'authentification anonyme
+Dashboard → **Authentication** → **Providers** → trouve **Anonymous Sign-ins** → **Enable**.
+
+Sans ça, l'app n'arrive pas à créer de comptes.
+
+---
+
+## 2) Déploiement
+
+Déjà sur GitHub Pages : https://lancelotklp.github.io/compteur-retour/
+
+Pour redéployer après modif : `git push` (Pages reconstruit automatiquement).
+
+---
+
+## 3) Premier lancement (toi)
+
+1. Va sur l'URL.
+2. Onglet **🎨 Dessin** → **Créer un couple**.
+3. Entre ton pseudo.
+4. **Note bien le code à 6 caractères affiché** — copie-le.
+
+## 4) Premier lancement (ta copine)
+
+1. Tu lui envoies l'URL + le code.
+2. Onglet **🎨 Dessin** → **Rejoindre un couple**.
+3. Entre le code + son pseudo.
+
+Vous êtes liés. Chaque matin, ouvrez l'app, dessinez. À minuit Paris, les deux dessins apparaissent dans "Dessins d'aujourd'hui" et s'archivent dans la galerie.
+
+---
+
+## 5) Raccourcis iOS — Notifications
+
+Sur l'iPhone de ta copine (et le tien aussi si tu veux), ouvre l'app **Raccourcis**.
+
+### Raccourci 1 — « Compteur Strasbourg » (notif 9 h)
 
 | # | Action | Configuration |
 |---|--------|---------------|
-| 1 | **Date** | Date « 30 juin 2026 à 18:34 » |
-| 2 | **Date** | Date « Date actuelle » |
-| 3 | **Obtenir le temps entre des dates** | De : Sortie action 2 (Date actuelle) — À : Sortie action 1 (30 juin) — En : **Heures** |
-| 4 | **Texte** | Tape : `Plus que [Sortie action 3] heures avant de rentrer à Strasbourg 💕` |
-| 5 | **Afficher la notification** | Titre : `Bientôt à la maison` — Corps : Sortie action 4 |
+| 1 | **Date** | « 30 juin 2026 à 18:34 » |
+| 2 | **Date** | « Date actuelle » |
+| 3 | **Obtenir le temps entre des dates** | De : sortie #2 — À : sortie #1 — Unité : **Heures** |
+| 4 | **Texte** | `Plus que [sortie #3] heures avant de rentrer 💕` |
+| 5 | **Afficher la notification** | Titre : `Bientôt à la maison` — Corps : sortie #4 |
 
-Teste le raccourci avec le bouton ▶︎ : une notification doit s'afficher avec le nombre d'heures.
+→ App Raccourcis → onglet **Automatisation** → **+** → **Heure du jour** → **09:00** tous les jours → **Décocher "Demander avant d'exécuter"** → **Exécuter le raccourci** : Compteur Strasbourg.
 
-### Automation à 9 h tous les matins
+### Raccourci 2 — « Sujet du jour » (notif 8 h)
 
-1. App Raccourcis → onglet **Automatisation** → **+** en haut à droite.
-2. Choisis **Heure du jour** → règle sur **09:00**, **Tous les jours**.
-3. Décoche **Demander avant d'exécuter** (sinon ça ne notifie pas tout seul).
-4. Action : **Exécuter le raccourci** → choisis « Compteur Strasbourg ».
-5. Enregistre.
+Approche simple : on encode la même logique que l'app (liste de 65 sujets, cyclique depuis le 12 mai 2026).
 
-→ Chaque matin à 9 h, elle reçoit la notification avec le nombre d'heures exactes restantes.
+| # | Action | Configuration |
+|---|--------|---------------|
+| 1 | **Texte** | Colle la liste complète des 65 sujets (un par ligne — copie depuis `content.js` champ `dailyPrompts`) |
+| 2 | **Diviser le texte** | Texte : sortie #1 — Séparateur : **Nouvelle ligne** |
+| 3 | **Date** | « 12 mai 2026 à 00:00 » |
+| 4 | **Date** | « Date actuelle » |
+| 5 | **Obtenir le temps entre des dates** | De : sortie #3 — À : sortie #4 — Unité : **Jours** |
+| 6 | **Calculer** | sortie #5 **modulo** 65 → résultat = index |
+| 7 | **Obtenir l'élément de la liste** | Liste : sortie #2 — Élément à l'index : sortie #6 (ajoute +1 si Raccourcis compte à partir de 1) |
+| 8 | **Afficher la notification** | Titre : `🎨 Sujet du jour` — Corps : `[sortie #7]. Vous avez jusqu'à minuit pour dessiner.` |
+
+→ Automatisation **Heure du jour** → **08:00** tous les jours → ce raccourci.
+
+**Plus simple** si tu n'as pas envie de configurer la liste complète : remplace l'action #1 par un simple **Texte** disant `Va voir l'app pour découvrir le sujet du jour ✨` et fais juste la notification d'incitation à 8 h.
 
 ---
 
-## 3) Widget sur l'écran d'accueil
+## 6) Widget iOS (optionnel)
 
-iOS ne permet pas aux Raccourcis d'afficher un widget qui se met à jour automatiquement, **mais** deux options :
+Cf. version précédente du README (section Scriptable) — toujours valide.
 
-### Option A — Bouton Raccourci (le plus simple, gratuit, natif)
+---
 
-1. Appui long sur l'écran d'accueil → **+** en haut à gauche → cherche **Raccourcis**.
-2. Ajoute un widget **Raccourci unique** (taille au choix).
-3. Appui long sur le widget → **Modifier le widget** → choisis « Compteur Strasbourg ».
+## Personnalisation
 
-→ Un tap sur le widget lance le raccourci et affiche la notif avec le nombre d'heures.
+Tout le contenu éditable est dans [content.js](content.js) :
+- `capsules` : messages quotidiens
+- `milestones` : messages des paliers J-X
+- `memoryPairs` : pool de photos pour le jeu mémoire
+- `dailyPrompts` : liste des 65 sujets de dessin (ordre = ordre de défilement)
 
-### Option B — Vrai widget auto-actualisé (via l'app gratuite **Scriptable**)
-
-1. Installe **Scriptable** depuis l'App Store (gratuit).
-2. Ouvre Scriptable → **+** → colle le script ci-dessous → nomme-le « CompteurStrasbourg ».
-3. Appui long sur l'écran d'accueil → **+** → **Scriptable** → ajoute un widget petit.
-4. Appui long sur le widget → **Modifier le widget** → Script : « CompteurStrasbourg ».
-
-```javascript
-// CompteurStrasbourg.js — widget Scriptable
-const TARGET = new Date('2026-06-30T18:34:00+02:00');
-const now = new Date();
-const diffMs = TARGET - now;
-const hours = Math.max(0, Math.floor(diffMs / 3600000));
-const days = Math.max(0, Math.floor(diffMs / 86400000));
-
-const w = new ListWidget();
-w.backgroundGradient = (() => {
-  const g = new LinearGradient();
-  g.colors = [new Color("#1a0a2e"), new Color("#4a1942")];
-  g.locations = [0, 1];
-  return g;
-})();
-
-const label = w.addText("BERLIN → STRASBOURG");
-label.font = Font.systemFont(9);
-label.textColor = new Color("#ffb3c7");
-w.addSpacer(6);
-
-const big = w.addText(`${hours}`);
-big.font = Font.lightSystemFont(48);
-big.textColor = new Color("#ffd8e6");
-
-const sub = w.addText(hours <= 1 ? "heure restante" : "heures restantes");
-sub.font = Font.systemFont(11);
-sub.textColor = new Color("#ff7eb3");
-
-w.addSpacer(4);
-const dd = w.addText(`${days} j  •  30 juin 18 h 34`);
-dd.font = Font.systemFont(10);
-dd.textColor = new Color("#ffffff99");
-
-Script.setWidget(w);
-Script.complete();
+Pour ajouter une photo au jeu mémoire :
+```bash
+sips -s format jpeg -Z 600 -s formatOptions 80 photos/MA_PHOTO.HEIC --out photos/web/ma_photo.jpg
 ```
+puis ajoute la ligne `{ img: "photos/web/ma_photo.jpg" },` dans `memoryPairs`.
 
-→ Le widget se rafraîchit automatiquement (iOS choisit la fréquence, ~toutes les 15-30 min).
+Date cible / fuseau : modifiables dans [app.js](app.js) (`TARGET`) et [config.js](config.js) (`PROMPTS_START_DATE`).
 
 ---
 
-## Récap pour elle
+## Architecture
 
-1. Reçoit l'URL Vercel → l'ouvre sur Safari → **Partager** → **Sur l'écran d'accueil** (icône web app cœur).
-2. Crée le raccourci « Compteur Strasbourg » (5 actions).
-3. Crée l'automation 9 h tous les jours.
-4. (Optionnel) Installe Scriptable pour un vrai widget auto-actualisé.
-
-💕
+- **Front** : HTML/CSS/JS vanilla, zéro build, 4 fichiers (`index.html`, `app.js`, `content.js`, `config.js`)
+- **Back** : Supabase (PostgreSQL + Auth anonyme + RLS)
+- **Stockage dessin** : PNG en base64 directement dans la colonne `drawings.image_data` (pas de Storage bucket → RLS plus simple, sécurité plus stricte)
+- **Persistance locale** : capsules, streak, record du jeu mémoire dans `localStorage`
+- **Persistance distante** : couple + profils + dessins dans Supabase
+- **Hébergement** : GitHub Pages (statique)
