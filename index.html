@@ -333,7 +333,7 @@
     text-decoration: underline;
   }
 
-  /* ============ NAV ============ */
+  /* ============ NAV (bottom — desktop/tablette) ============ */
   .nav {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: rgba(26, 10, 46, 0.85);
@@ -356,6 +356,69 @@
   .nav-btn .nav-icon { font-size: 22px; }
   .nav-btn.active { color: var(--accent-2); background: rgba(255, 126, 179, 0.1); }
   .nav-btn:active { transform: scale(0.95); }
+
+  /* ============ TOPBAR + BURGER (mobile) ============ */
+  .topbar {
+    display: none;
+    position: fixed; top: 0; left: 0; right: 0;
+    background: rgba(26, 10, 46, 0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--card-border);
+    padding: calc(env(safe-area-inset-top) + 10px) 18px 10px;
+    z-index: 15;
+    align-items: center; justify-content: space-between;
+  }
+  .topbar-title {
+    font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent-2); font-weight: 500;
+  }
+  .burger {
+    background: transparent; border: none; cursor: pointer;
+    width: 36px; height: 36px; padding: 8px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .burger span {
+    display: block; width: 100%; height: 2px;
+    background: var(--accent-2); border-radius: 2px;
+    transition: transform .25s ease, opacity .25s ease;
+  }
+  .burger.open span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+  .burger.open span:nth-child(2) { opacity: 0; }
+  .burger.open span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+
+  .menu-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 4, 24, 0.96);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    z-index: 14;
+    display: none;
+    flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 76px) 20px 32px;
+    animation: fadeIn .25s ease;
+  }
+  .menu-overlay.open { display: flex; }
+  .menu-btn {
+    background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text); padding: 20px 22px; margin-bottom: 12px;
+    border-radius: 16px; font-size: 17px; font-family: inherit;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; text-align: left;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease;
+  }
+  .menu-btn:active { transform: scale(0.98); }
+  .menu-btn .menu-icon { font-size: 26px; }
+  .menu-btn.active {
+    background: linear-gradient(135deg, rgba(255, 126, 179, 0.18), rgba(74, 25, 66, 0.3));
+    border-color: rgba(255, 126, 179, 0.4);
+    color: var(--accent-2);
+  }
+
+  @media (max-width: 640px) {
+    body { padding: calc(env(safe-area-inset-top) + 76px) 16px 32px; }
+    .topbar { display: flex; }
+    .nav { display: none; }
+    .app > .label { display: none; }
+  }
 
   /* ============ MODAL ============ */
   .modal-overlay {
@@ -410,6 +473,30 @@
 </head>
 <body>
   <div class="hearts" id="hearts"></div>
+
+  <!-- ============ TOPBAR (mobile uniquement) ============ -->
+  <header class="topbar">
+    <div class="topbar-title">Berlin → Strasbourg</div>
+    <button class="burger" id="burgerBtn" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- ============ MENU OVERLAY (mobile uniquement) ============ -->
+  <div class="menu-overlay" id="menuOverlay">
+    <button class="menu-btn active" data-view="countdown">
+      <span class="menu-icon">⏱</span><span>Compteur</span>
+    </button>
+    <button class="menu-btn" data-view="capsules">
+      <span class="menu-icon">💌</span><span>Capsules</span>
+    </button>
+    <button class="menu-btn" data-view="game">
+      <span class="menu-icon">🎴</span><span>Jeu mémoire</span>
+    </button>
+    <button class="menu-btn" data-view="drawing">
+      <span class="menu-icon">🎨</span><span>Dessin du jour</span>
+    </button>
+  </div>
 
   <div class="app">
     <div class="label">Berlin → Strasbourg</div>

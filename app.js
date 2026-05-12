@@ -782,26 +782,40 @@ setInterval(() => {
 }, 60000);
 
 // =============================================================
-// NAVIGATION
+// NAVIGATION (bottom nav + top burger)
 // =============================================================
+const burgerBtn = document.getElementById('burgerBtn');
+const menuOverlay = document.getElementById('menuOverlay');
+
+function setBurgerOpen(open) {
+  burgerBtn.classList.toggle('open', open);
+  menuOverlay.classList.toggle('open', open);
+  burgerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+burgerBtn.addEventListener('click', () => setBurgerOpen(!menuOverlay.classList.contains('open')));
+
+async function switchView(view) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.menu-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  if (view === 'capsules') renderCapsules();
+  if (view === 'game' && !gameState) startGame();
+  if (view === 'drawing') {
+    try { await loadProfile(); renderDrawingView(); }
+    catch (e) { console.error(e); }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const view = btn.dataset.view;
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === btn));
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + view).classList.add('active');
-    if (view === 'capsules') renderCapsules();
-    if (view === 'game' && !gameState) startGame();
-    if (view === 'drawing') {
-      // S'assurer qu'on est connecté + charger le profil
-      try {
-        await loadProfile();
-        renderDrawingView();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+document.querySelectorAll('.menu-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    switchView(btn.dataset.view);
+    setBurgerOpen(false);
   });
 });
 
