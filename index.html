@@ -602,7 +602,10 @@
     let gameState = null;
 
     function startGame() {
-      const pairs = window.APP_CONTENT.memoryPairs;
+      const pool = window.APP_CONTENT.memoryPairs;
+      // Tirer 8 éléments au hasard dans le pool (si plus de 8 dispo)
+      const shuffledPool = [...pool].sort(() => Math.random() - 0.5);
+      const pairs = shuffledPool.slice(0, 8);
       const deck = [...pairs, ...pairs]
         .map(v => ({ v, k: Math.random() }))
         .sort((a, b) => a.k - b.k)
@@ -625,7 +628,9 @@
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.idx = i;
-        const valueHtml = typeof v === 'string' ? v : `<img src="${v.img}" style="width:80%;height:80%;object-fit:cover;border-radius:8px"/>`;
+        const valueHtml = typeof v === 'string'
+          ? v
+          : `<img src="${v.img}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px;display:block"/>`;
         card.innerHTML = `
           <div class="card-inner">
             <div class="card-face card-front"></div>
@@ -725,6 +730,17 @@
 
     // Init
     renderCapsules();
+
+    // Précharger les photos du jeu mémoire
+    (function preloadPhotos() {
+      const pool = window.APP_CONTENT.memoryPairs || [];
+      pool.forEach(p => {
+        if (p && typeof p === 'object' && p.img) {
+          const img = new Image();
+          img.src = p.img;
+        }
+      });
+    })();
 
     // Petits cœurs flottants
     const heartsEl = document.getElementById('hearts');

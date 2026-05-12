@@ -119,8 +119,28 @@ window.APP_CONTENT = {
   },
 
   // ---------- 3) Jeu mémoire ----------
-  // 8 paires. Mets des emojis qui vous parlent, ou remplace par { img: "url" } pour une photo.
-  memoryPairs: ["🌹", "🥐", "🗼", "🐱", "☕", "🎵", "🌙", "💌"],
+  // Pool de photos. À chaque nouvelle partie, 8 photos sont tirées au hasard.
+  // Pour utiliser des emojis à la place, remplace par : memoryPairs: ["🌹", "🥐", ...]
+  memoryPairs: [
+    { img: "photos/web/IMG_0023.jpg" },
+    { img: "photos/web/IMG_0037.jpg" },
+    { img: "photos/web/IMG_0085.jpg" },
+    { img: "photos/web/IMG_0341.jpg" },
+    { img: "photos/web/IMG_0367.jpg" },
+    { img: "photos/web/IMG_0434.jpg" },
+    { img: "photos/web/IMG_0435.jpg" },
+    { img: "photos/web/IMG_0530.jpg" },
+    { img: "photos/web/IMG_0751.jpg" },
+    { img: "photos/web/IMG_0829.jpg" },
+    { img: "photos/web/IMG_0870.jpg" },
+    { img: "photos/web/IMG_0889.jpg" },
+    { img: "photos/web/IMG_0954.jpg" },
+    { img: "photos/web/IMG_1121.jpg" },
+    { img: "photos/web/IMG_1156.jpg" },
+    { img: "photos/web/IMG_1174.jpg" },
+    { img: "photos/web/IMG_1215.jpg" },
+    { img: "photos/web/IMG_9876.jpg" }
+  ],
 
   memoryWinMessage: "Bravo ma belle 💕 Encore un jour de gagné."
 };

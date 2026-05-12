@@ -1,0 +1,12 @@
+# Photos originales (HEIC/JPG full size) — on ne commit que les versions web optimisées
+photos/*.HEIC
+photos/*.JPG
+photos/*.heic
+photos/*.jpg
+
+# Garder le dossier web/ optimisé
+!photos/web/
+!photos/web/*.jpg
+
+# macOS
+.DS_Store
