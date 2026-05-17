@@ -79,6 +79,43 @@ function daysRemaining() {
 }
 
 // =============================================================
+// CARTE BERLIN → STRASBOURG
+// =============================================================
+(function initJourneyMap() {
+  const fullPath = document.getElementById('journeyPath');
+  const donePath = document.getElementById('journeyPathDone');
+  const traveler = document.getElementById('journeyTraveler');
+  const progressEl = document.getElementById('journeyProgress');
+  const remainingEl = document.getElementById('journeyRemaining');
+  if (!fullPath || !donePath || !traveler) return;
+
+  const START = new Date(APP_CONFIG.PROMPTS_START_DATE + 'T00:00:00').getTime();
+  const totalLen = fullPath.getTotalLength();
+  donePath.style.strokeDasharray = totalLen;
+
+  function updateJourney() {
+    const now = Date.now();
+    const total = TARGET - START;
+    const elapsed = Math.max(0, now - START);
+    const progress = total > 0 ? Math.min(1, elapsed / total) : 1;
+
+    const pt = fullPath.getPointAtLength(totalLen * progress);
+    traveler.setAttribute('x', pt.x);
+    traveler.setAttribute('y', pt.y);
+
+    donePath.style.strokeDashoffset = totalLen * (1 - progress);
+
+    progressEl.textContent = Math.round(progress * 100) + '%';
+    const remainingMs = Math.max(0, TARGET - now);
+    const remainingDays = Math.ceil(remainingMs / 86400000);
+    remainingEl.textContent = remainingDays + ' j';
+  }
+  updateJourney();
+  // Rafraîchit toutes les minutes (pas besoin de plus, l'aiguille bouge lentement)
+  setInterval(updateJourney, 60000);
+})();
+
+// =============================================================
 // MODAL générique
 // =============================================================
 const modal = document.getElementById('modal');
@@ -1282,6 +1319,153 @@ async function renderBucketView() {
 document.getElementById('bucketGoAuth').addEventListener('click', () => switchView('drawing'));
 
 // =============================================================
+// JOURNAL COMMUN
+// =============================================================
+const journalGateEl = document.getElementById('journalGate');
+const journalMainEl = document.getElementById('journalMain');
+const journalInputEl = document.getElementById('journalInput');
+const journalPublishBtn = document.getElementById('journalPublish');
+const journalListEl = document.getElementById('journalList');
+const moodPickerEl = document.getElementById('moodPicker');
+
+let journalMood = '';
+let journalEditingId = null;
+
+moodPickerEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.mood-btn');
+  if (!btn) return;
+  journalMood = btn.dataset.mood || '';
+  moodPickerEl.querySelectorAll('.mood-btn').forEach(b =>
+    b.classList.toggle('active', b === btn)
+  );
+});
+
+function formatJournalDate(iso) {
+  const d = new Date(iso);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yest = new Date(today.getTime() - 86400000);
+  const that = new Date(d); that.setHours(0,0,0,0);
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (that.getTime() === today.getTime()) return `Aujourd'hui • ${time}`;
+  if (that.getTime() === yest.getTime()) return `Hier • ${time}`;
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) + ` • ${time}`;
+}
+
+async function publishJournalEntry() {
+  if (!myProfile || !myProfile.couple_id) return;
+  const text = journalInputEl.value.trim();
+  if (!text) return;
+  journalPublishBtn.disabled = true;
+  journalPublishBtn.textContent = '…';
+  try {
+    if (journalEditingId) {
+      const { error } = await sb.from('journal_entries').update({
+        text, mood: journalMood || null
+      }).eq('id', journalEditingId);
+      if (error) throw error;
+      journalEditingId = null;
+    } else {
+      const { error } = await sb.from('journal_entries').insert({
+        couple_id: myProfile.couple_id,
+        user_id: myProfile.id,
+        text,
+        mood: journalMood || null
+      });
+      if (error) throw error;
+    }
+    journalInputEl.value = '';
+    journalMood = '';
+    moodPickerEl.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+    await refreshJournalUI();
+  } catch (e) {
+    alert("Erreur : " + e.message);
+  } finally {
+    journalPublishBtn.disabled = false;
+    journalPublishBtn.textContent = journalEditingId ? 'Modifier' : 'Publier';
+  }
+}
+journalPublishBtn.addEventListener('click', publishJournalEntry);
+
+async function deleteJournalEntry(id) {
+  const { error } = await sb.from('journal_entries').delete().eq('id', id);
+  if (error) { alert("Erreur : " + error.message); return; }
+  if (journalEditingId === id) {
+    journalEditingId = null;
+    journalInputEl.value = '';
+    journalPublishBtn.textContent = 'Publier';
+  }
+  await refreshJournalUI();
+}
+
+function startEditJournal(entry) {
+  journalEditingId = entry.id;
+  journalInputEl.value = entry.text;
+  journalMood = entry.mood || '';
+  moodPickerEl.querySelectorAll('.mood-btn').forEach(b =>
+    b.classList.toggle('active', (b.dataset.mood || '') === journalMood)
+  );
+  journalPublishBtn.textContent = 'Modifier';
+  journalInputEl.focus();
+  journalInputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function refreshJournalUI() {
+  if (!myProfile || !myProfile.couple_id) return;
+  const { data: entries, error } = await sb.from('journal_entries')
+    .select('*').eq('couple_id', myProfile.couple_id)
+    .order('created_at', { ascending: false }).limit(200);
+  if (error) { console.error(error); return; }
+
+  const { data: profiles } = await sb.from('profiles')
+    .select('id,pseudo').eq('couple_id', myProfile.couple_id);
+  const pseudoById = Object.fromEntries((profiles || []).map(p => [p.id, p.pseudo]));
+
+  journalListEl.innerHTML = '';
+  if (!entries || entries.length === 0) {
+    journalListEl.innerHTML = '<div class="history-empty">Aucune entrée pour l\'instant. Écris la première 💕</div>';
+    return;
+  }
+  entries.forEach(e => {
+    const mine = e.user_id === myProfile.id;
+    const row = document.createElement('div');
+    row.className = 'journal-entry ' + (mine ? 'mine' : 'partner');
+    const author = pseudoById[e.user_id] || '—';
+    const moodHtml = e.mood ? `<span class="journal-mood">${e.mood}</span>` : '';
+    row.innerHTML = `
+      <div class="journal-meta">
+        <div class="journal-author">${moodHtml}${escapeHtml(author)}</div>
+        <div class="journal-date">${formatJournalDate(e.created_at)}${e.updated_at && e.updated_at !== e.created_at ? ' · modifié' : ''}</div>
+      </div>
+      <div class="journal-text">${escapeHtml(e.text)}</div>
+      ${mine ? `
+        <div class="journal-actions">
+          <button class="journal-edit">Modifier</button>
+          <button class="journal-del">Supprimer</button>
+        </div>` : ''}`;
+    if (mine) {
+      row.querySelector('.journal-edit').onclick = () => startEditJournal(e);
+      row.querySelector('.journal-del').onclick = () => {
+        if (confirm("Supprimer cette entrée ?")) deleteJournalEntry(e.id);
+      };
+    }
+    journalListEl.appendChild(row);
+  });
+}
+
+async function renderJournalView() {
+  if (!myUser || !myProfile || !myProfile.couple_id) {
+    journalGateEl.style.display = 'block';
+    journalMainEl.style.display = 'none';
+    return;
+  }
+  journalGateEl.style.display = 'none';
+  journalMainEl.style.display = 'block';
+  await refreshJournalUI();
+}
+
+document.getElementById('journalGoAuth').addEventListener('click', () => switchView('drawing'));
+
+// =============================================================
 // NAVIGATION (bottom nav + top burger)
 // =============================================================
 const burgerBtn = document.getElementById('burgerBtn');
@@ -1313,6 +1497,10 @@ async function switchView(view) {
   }
   if (view === 'bucket') {
     try { await loadProfile(); renderBucketView(); }
+    catch (e) { console.error(e); }
+  }
+  if (view === 'journal') {
+    try { await loadProfile(); renderJournalView(); }
     catch (e) { console.error(e); }
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });

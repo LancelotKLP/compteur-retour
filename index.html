@@ -357,6 +357,60 @@
     text-decoration: underline;
   }
 
+  /* ============ CARTE BERLIN → STRASBOURG ============ */
+  .journey {
+    background: var(--card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border); border-radius: 24px;
+    padding: 22px 18px; margin-top: 20px;
+    text-align: center;
+  }
+  .journey-title {
+    font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 14px;
+  }
+  .journey-svg { width: 100%; height: auto; display: block; }
+  .journey-city {
+    fill: var(--accent-3);
+    font-size: 12px; font-weight: 500;
+    font-family: inherit;
+    letter-spacing: 0.05em;
+  }
+  .journey-city-dot {
+    fill: var(--accent-2);
+    filter: drop-shadow(0 0 4px rgba(255, 179, 199, 0.6));
+  }
+  .journey-path {
+    fill: none;
+    stroke: rgba(255, 126, 179, 0.25);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+  .journey-path-done {
+    fill: none;
+    stroke: rgba(255, 208, 132, 0.7);
+    stroke-width: 2;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 6px rgba(255, 208, 132, 0.4));
+    transition: stroke-dashoffset 1s ease;
+  }
+  .journey-traveler {
+    font-size: 22px;
+    filter: drop-shadow(0 0 8px rgba(255, 179, 199, 0.7));
+  }
+  .journey-info {
+    display: flex; justify-content: space-around;
+    margin-top: 14px; gap: 10px;
+  }
+  .journey-stat { flex: 1; }
+  .journey-stat-value {
+    font-size: 20px; font-weight: 300; color: var(--accent-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .journey-stat-label {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); margin-top: 2px;
+  }
+
   /* ============ PUZZLE PHOTO ============ */
   .puzzle-board {
     display: grid;
@@ -436,6 +490,75 @@
   .question-day-date { font-size: 12px; color: var(--accent-2); font-weight: 500; }
   .question-day-text { font-size: 14px; color: var(--text); margin-top: 2px; font-style: italic; }
 
+  /* ============ JOURNAL COMMUN ============ */
+  .journal-editor {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 14px; margin-bottom: 16px;
+  }
+  .journal-editor textarea {
+    width: 100%; min-height: 80px; background: transparent;
+    border: none; outline: none; resize: vertical;
+    color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.5;
+  }
+  .journal-editor textarea::placeholder { color: var(--muted); }
+  .journal-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--card-border);
+  }
+  .mood-picker {
+    display: flex; gap: 4px; flex-wrap: wrap; flex: 1;
+  }
+  .mood-btn {
+    background: transparent; border: 1px solid transparent;
+    width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; font-size: 18px; padding: 0;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .mood-btn:hover { background: rgba(255, 255, 255, 0.05); }
+  .mood-btn.active {
+    background: rgba(255, 126, 179, 0.15);
+    border-color: rgba(255, 126, 179, 0.4);
+  }
+  .journal-publish {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--bg-1); border: none; padding: 8px 16px;
+    border-radius: 10px; font-weight: 500; font-family: inherit;
+    cursor: pointer; font-size: 14px; flex-shrink: 0;
+  }
+  .journal-publish:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .journal-list { display: flex; flex-direction: column; gap: 10px; }
+  .journal-entry {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 14px 16px;
+  }
+  .journal-entry.mine { border-color: rgba(255, 126, 179, 0.3); background: rgba(255, 126, 179, 0.06); }
+  .journal-entry.partner { border-color: rgba(255, 208, 132, 0.3); background: rgba(255, 208, 132, 0.04); }
+  .journal-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px; font-size: 12px;
+  }
+  .journal-author { color: var(--accent-2); font-weight: 500; }
+  .journal-entry.partner .journal-author { color: var(--gold); }
+  .journal-date { color: var(--muted); font-size: 11px; }
+  .journal-mood { font-size: 18px; margin-right: 6px; }
+  .journal-text {
+    font-size: 14px; line-height: 1.5; color: var(--text);
+    font-weight: 300; white-space: pre-wrap; word-break: break-word;
+  }
+  .journal-actions {
+    display: flex; gap: 8px; margin-top: 8px;
+    font-size: 11px;
+  }
+  .journal-actions button {
+    background: transparent; border: none; color: var(--muted);
+    cursor: pointer; padding: 2px 6px; font-family: inherit;
+    text-decoration: underline; font-size: 11px;
+  }
+  .journal-actions button:hover { color: var(--accent-2); }
+  .journal-actions .journal-del:hover { color: #ff9aa2; }
+
   /* ============ LISTE À FAIRE AU RETOUR ============ */
   .bucket-add {
     display: flex; gap: 8px; margin-bottom: 16px;
@@ -507,7 +630,7 @@
   }
   .nav-inner {
     max-width: 640px; margin: 0 auto;
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
   }
   .nav-btn {
     background: transparent; border: none; color: var(--muted);
@@ -669,6 +792,9 @@
     <button class="menu-btn" data-view="bucket">
       <span class="menu-icon">📝</span><span>Liste retour</span>
     </button>
+    <button class="menu-btn" data-view="journal">
+      <span class="menu-icon">📓</span><span>Journal commun</span>
+    </button>
   </div>
 
   <div class="app">
@@ -691,6 +817,34 @@
         Arrivée prévue&nbsp;: <strong>mardi 30 juin 2026, 18&nbsp;h&nbsp;34</strong><br/>
         Gare de Strasbourg&nbsp;💫
       </p>
+
+      <div class="journey">
+        <div class="journey-title">Le voyage</div>
+        <svg class="journey-svg" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Trajectoire complète (pointillé) -->
+          <path id="journeyPath" class="journey-path" d="M 340 50 Q 240 30 200 90 T 60 150" />
+          <!-- Trajectoire parcourue (dynamique) -->
+          <path id="journeyPathDone" class="journey-path-done" d="M 340 50 Q 240 30 200 90 T 60 150" />
+          <!-- Berlin -->
+          <circle class="journey-city-dot" cx="340" cy="50" r="5" />
+          <text class="journey-city" x="340" y="34" text-anchor="middle">Berlin</text>
+          <!-- Strasbourg -->
+          <circle class="journey-city-dot" cx="60" cy="150" r="5" />
+          <text class="journey-city" x="60" y="172" text-anchor="middle">Strasbourg</text>
+          <!-- Voyageuse (positionnée par JS) -->
+          <text id="journeyTraveler" class="journey-traveler" x="340" y="58" text-anchor="middle" dominant-baseline="middle">💕</text>
+        </svg>
+        <div class="journey-info">
+          <div class="journey-stat">
+            <div class="journey-stat-value" id="journeyProgress">0%</div>
+            <div class="journey-stat-label">Parcouru</div>
+          </div>
+          <div class="journey-stat">
+            <div class="journey-stat-value" id="journeyRemaining">—</div>
+            <div class="journey-stat-label">Restant</div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ============ VIEW: CAPSULES ============ -->
@@ -824,6 +978,37 @@
       </div>
     </section>
 
+    <!-- ============ VIEW: JOURNAL COMMUN ============ -->
+    <section class="view" id="view-journal">
+      <h1 class="title">Journal commun</h1>
+      <div id="journalGate" style="display:none">
+        <div class="couple-gate">
+          <h3>Journal commun</h3>
+          <p>Ce journal est partagé avec ton·a partenaire. Va dans <strong>Dessin</strong> pour te connecter et rejoindre votre couple.</p>
+          <button class="btn primary" id="journalGoAuth">Aller à Dessin</button>
+        </div>
+      </div>
+      <div id="journalMain" style="display:none">
+        <div class="journal-editor">
+          <textarea id="journalInput" placeholder="Un petit mot, une humeur, un souvenir du jour…" maxlength="2000"></textarea>
+          <div class="journal-toolbar">
+            <div class="mood-picker" id="moodPicker">
+              <button class="mood-btn" data-mood="">∅</button>
+              <button class="mood-btn" data-mood="💕">💕</button>
+              <button class="mood-btn" data-mood="😊">😊</button>
+              <button class="mood-btn" data-mood="🥰">🥰</button>
+              <button class="mood-btn" data-mood="🌧">🌧</button>
+              <button class="mood-btn" data-mood="🌸">🌸</button>
+              <button class="mood-btn" data-mood="✨">✨</button>
+              <button class="mood-btn" data-mood="🌙">🌙</button>
+            </div>
+            <button class="journal-publish" id="journalPublish">Publier</button>
+          </div>
+        </div>
+        <div class="journal-list" id="journalList"></div>
+      </div>
+    </section>
+
     <!-- ============ VIEW: DESSIN ============ -->
     <section class="view" id="view-drawing">
       <h1 class="title">Dessin du jour</h1>
@@ -912,6 +1097,9 @@
       </button>
       <button class="nav-btn" data-view="bucket">
         <span class="nav-icon">📝</span><span>Liste</span>
+      </button>
+      <button class="nav-btn" data-view="journal">
+        <span class="nav-icon">📓</span><span>Journal</span>
       </button>
     </div>
   </nav>

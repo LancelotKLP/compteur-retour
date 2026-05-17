@@ -279,5 +279,57 @@ create policy "bucket_items_delete" on public.bucket_items
   );
 
 -- ============================================================
+-- 7) Journal commun (journal_entries)
+-- ============================================================
+
+create table if not exists public.journal_entries (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  text text not null,
+  mood text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists journal_entries_couple_created_idx
+  on public.journal_entries (couple_id, created_at desc);
+
+drop trigger if exists journal_entries_updated_at on public.journal_entries;
+create trigger journal_entries_updated_at
+  before update on public.journal_entries
+  for each row execute function public.set_updated_at();
+
+alter table public.journal_entries enable row level security;
+
+-- Tout membre du couple peut lire toutes les entrées du couple
+drop policy if exists "journal_select" on public.journal_entries;
+create policy "journal_select" on public.journal_entries
+  for select to authenticated using (
+    couple_id = public.my_couple_id()
+  );
+
+-- Seul l'auteur peut écrire dans son couple
+drop policy if exists "journal_insert" on public.journal_entries;
+create policy "journal_insert" on public.journal_entries
+  for insert to authenticated with check (
+    user_id = auth.uid()
+    and couple_id = public.my_couple_id()
+  );
+
+-- Seul l'auteur peut modifier/supprimer ses propres entrées
+drop policy if exists "journal_update" on public.journal_entries;
+create policy "journal_update" on public.journal_entries
+  for update to authenticated using (
+    user_id = auth.uid()
+  );
+
+drop policy if exists "journal_delete" on public.journal_entries;
+create policy "journal_delete" on public.journal_entries
+  for delete to authenticated using (
+    user_id = auth.uid()
+  );
+
+-- ============================================================
 -- DONE
 -- ============================================================
