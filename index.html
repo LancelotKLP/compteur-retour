@@ -680,7 +680,10 @@
     z-index: 14;
     display: none;
     flex-direction: column;
-    padding: calc(env(safe-area-inset-top) + 76px) 20px 32px;
+    padding: calc(env(safe-area-inset-top) + 76px) 20px calc(env(safe-area-inset-bottom) + 80px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     animation: fadeIn .25s ease;
   }
   .menu-overlay.open { display: flex; }

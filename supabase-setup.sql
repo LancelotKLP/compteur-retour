@@ -186,6 +186,17 @@ create trigger daily_answers_updated_at
 
 alter table public.daily_answers enable row level security;
 
+-- Helper SECURITY DEFINER : sait si l'utilisateur courant a déjà répondu à une date donnée
+-- (contourne RLS pour éviter la récursion infinie dans la policy ci-dessous)
+create or replace function public.my_answer_exists(d date)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.daily_answers
+    where user_id = auth.uid() and question_date = d
+  );
+$$;
+grant execute on function public.my_answer_exists(date) to authenticated;
+
 -- SELECT : sa propre réponse toujours ; celle du partenaire si soi-même a déjà répondu (même jour)
 --          OU si la date est passée
 drop policy if exists "daily_answers_select" on public.daily_answers;
@@ -196,11 +207,7 @@ create policy "daily_answers_select" on public.daily_answers
       couple_id = public.my_couple_id()
       and (
         question_date < (now() at time zone 'Europe/Paris')::date
-        or exists (
-          select 1 from public.daily_answers a2
-          where a2.user_id = auth.uid()
-            and a2.question_date = daily_answers.question_date
-        )
+        or public.my_answer_exists(question_date)
       )
     )
   );
