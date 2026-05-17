@@ -887,6 +887,401 @@ setInterval(() => {
 }, 60000);
 
 // =============================================================
+// PUZZLE PHOTO (taquin)
+// =============================================================
+const puzzleBoardEl = document.getElementById('puzzleBoard');
+const puzzlePreviewEl = document.getElementById('puzzlePreview');
+const puzzleMovesEl = document.getElementById('puzzleMoves');
+const puzzleSizeEl = document.getElementById('puzzleSize');
+const puzzleWinBannerEl = document.getElementById('puzzleWinBanner');
+
+let puzzleState = null;
+
+function pickRandomPhoto(exclude) {
+  const photos = (APP_CONTENT.memoryPairs || []).filter(p => p && p.img);
+  if (photos.length === 0) return null;
+  const choices = exclude ? photos.filter(p => p.img !== exclude) : photos;
+  const pool = choices.length > 0 ? choices : photos;
+  return pool[Math.floor(Math.random() * pool.length)].img;
+}
+
+function startPuzzle(size, photo) {
+  const n = size * size;
+  const pic = photo || pickRandomPhoto();
+  if (!pic) return;
+  puzzleState = {
+    size,
+    photo: pic,
+    tiles: Array.from({ length: n }, (_, i) => i),
+    emptyIdx: n - 1,
+    moves: 0,
+    won: false
+  };
+  puzzleBoardEl.style.setProperty('--puzzle-size', size);
+  puzzlePreviewEl.src = pic;
+  puzzleWinBannerEl.innerHTML = '';
+  shufflePuzzle(size * size * 12);
+  renderPuzzle();
+  puzzleMovesEl.textContent = '0';
+}
+
+function shufflePuzzle(steps) {
+  // Mouvements aléatoires depuis l'état résolu = puzzle toujours résoluble
+  let lastMoved = -1;
+  for (let s = 0; s < steps; s++) {
+    const neighbors = puzzleNeighbors(puzzleState.emptyIdx);
+    const candidates = neighbors.filter(i => i !== lastMoved);
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    lastMoved = puzzleState.emptyIdx;
+    swapTiles(pick, puzzleState.emptyIdx);
+    puzzleState.emptyIdx = pick;
+  }
+  puzzleState.moves = 0;
+}
+
+function puzzleNeighbors(idx) {
+  const size = puzzleState.size;
+  const r = Math.floor(idx / size), c = idx % size;
+  const out = [];
+  if (r > 0) out.push(idx - size);
+  if (r < size - 1) out.push(idx + size);
+  if (c > 0) out.push(idx - 1);
+  if (c < size - 1) out.push(idx + 1);
+  return out;
+}
+
+function swapTiles(a, b) {
+  const t = puzzleState.tiles[a];
+  puzzleState.tiles[a] = puzzleState.tiles[b];
+  puzzleState.tiles[b] = t;
+}
+
+function renderPuzzle() {
+  const size = puzzleState.size;
+  puzzleBoardEl.innerHTML = '';
+  for (let i = 0; i < size * size; i++) {
+    const tile = document.createElement('div');
+    tile.className = 'puzzle-tile';
+    if (i === puzzleState.emptyIdx) {
+      tile.classList.add('empty');
+    } else {
+      const origin = puzzleState.tiles[i];
+      const r = Math.floor(origin / size), c = origin % size;
+      tile.style.backgroundImage = `url(${puzzleState.photo})`;
+      tile.style.backgroundPosition = `${(c / (size - 1)) * 100}% ${(r / (size - 1)) * 100}%`;
+      if (puzzleState.tiles[i] === i) tile.classList.add('solved');
+      tile.addEventListener('click', () => tryPuzzleMove(i));
+    }
+    puzzleBoardEl.appendChild(tile);
+  }
+}
+
+function tryPuzzleMove(i) {
+  if (!puzzleState || puzzleState.won) return;
+  if (!puzzleNeighbors(i).includes(puzzleState.emptyIdx)) return;
+  swapTiles(i, puzzleState.emptyIdx);
+  puzzleState.emptyIdx = i;
+  puzzleState.moves += 1;
+  puzzleMovesEl.textContent = puzzleState.moves;
+  renderPuzzle();
+  if (puzzleState.tiles.every((v, idx) => v === idx)) winPuzzle();
+}
+
+function winPuzzle() {
+  puzzleState.won = true;
+  puzzleWinBannerEl.innerHTML = `
+    <div class="win-banner">
+      <h3>🎉 Reconstitué !</h3>
+      <p>${puzzleState.moves} coups • ${puzzleState.size}×${puzzleState.size}</p>
+      <p style="margin-top:8px">${APP_CONTENT.puzzleWinMessage || ''}</p>
+    </div>`;
+  // On retire la case vide pour révéler la photo entière
+  const tiles = puzzleBoardEl.querySelectorAll('.puzzle-tile');
+  const emptyTile = tiles[puzzleState.emptyIdx];
+  if (emptyTile) {
+    const size = puzzleState.size;
+    const r = Math.floor(puzzleState.emptyIdx / size), c = puzzleState.emptyIdx % size;
+    emptyTile.classList.remove('empty');
+    emptyTile.style.backgroundImage = `url(${puzzleState.photo})`;
+    emptyTile.style.backgroundPosition = `${(c / (size - 1)) * 100}% ${(r / (size - 1)) * 100}%`;
+  }
+}
+
+puzzleSizeEl.addEventListener('change', () => startPuzzle(+puzzleSizeEl.value));
+document.getElementById('puzzleNewPhoto').addEventListener('click', () => {
+  startPuzzle(+puzzleSizeEl.value, pickRandomPhoto(puzzleState?.photo));
+});
+document.getElementById('puzzleShuffle').addEventListener('click', () => {
+  startPuzzle(+puzzleSizeEl.value, puzzleState?.photo);
+});
+
+// =============================================================
+// QUESTION DU JOUR
+// =============================================================
+const questionGateEl = document.getElementById('questionGate');
+const questionMainEl = document.getElementById('questionMain');
+const questionTextEl = document.getElementById('questionText');
+const questionInputEl = document.getElementById('questionInput');
+const questionSaveBtn = document.getElementById('questionSave');
+const questionAnswerWrap = document.getElementById('questionAnswerWrap');
+const questionRevealEl = document.getElementById('questionReveal');
+const questionHistoryEl = document.getElementById('questionHistory');
+
+function todayQuestionIndex() {
+  const start = new Date(APP_CONFIG.PROMPTS_START_DATE + 'T00:00:00');
+  const now = new Date();
+  const diffDays = Math.floor((now - start) / 86400000);
+  const len = (APP_CONTENT.dailyQuestions || []).length;
+  if (len === 0) return 0;
+  return ((diffDays % len) + len) % len;
+}
+function todayQuestion() {
+  return (APP_CONTENT.dailyQuestions || [])[todayQuestionIndex()] || '';
+}
+
+async function saveMyAnswer() {
+  if (!myProfile || !myProfile.couple_id) return;
+  const text = questionInputEl.value.trim();
+  if (!text) return;
+  questionSaveBtn.disabled = true;
+  questionSaveBtn.textContent = 'Envoi…';
+  try {
+    const today = todayKey();
+    const { error } = await sb.from('daily_answers').upsert({
+      user_id: myProfile.id,
+      couple_id: myProfile.couple_id,
+      question_date: today,
+      question_text: todayQuestion(),
+      answer_text: text
+    }, { onConflict: 'user_id,question_date' });
+    if (error) throw error;
+    await refreshQuestionUI();
+  } catch (e) {
+    alert("Erreur en sauvegardant : " + e.message);
+    questionSaveBtn.disabled = false;
+    questionSaveBtn.textContent = 'Envoyer ma réponse';
+  }
+}
+questionSaveBtn.addEventListener('click', saveMyAnswer);
+
+function bubbleHtml(authorLabel, text, mine) {
+  return `
+    <div class="bubble ${mine ? 'mine' : 'partner'}">
+      <div class="bubble-author">${authorLabel}</div>
+      <div class="bubble-text">${escapeHtml(text)}</div>
+    </div>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+  );
+}
+
+async function refreshQuestionUI() {
+  if (!myProfile || !myProfile.couple_id) return;
+  questionTextEl.textContent = todayQuestion();
+
+  const today = todayKey();
+  const { data: todays } = await sb.from('daily_answers')
+    .select('*').eq('question_date', today);
+
+  const { data: profiles } = await sb.from('profiles')
+    .select('id,pseudo').eq('couple_id', myProfile.couple_id);
+  const pseudoById = Object.fromEntries((profiles || []).map(p => [p.id, p.pseudo]));
+
+  const mine = (todays || []).find(d => d.user_id === myProfile.id);
+  const partner = (todays || []).find(d => d.user_id !== myProfile.id);
+
+  questionRevealEl.innerHTML = '';
+  questionRevealEl.style.display = 'none';
+
+  if (!mine) {
+    // Pas encore répondu : on montre l'éditeur
+    questionAnswerWrap.style.display = 'block';
+    questionInputEl.value = '';
+    questionSaveBtn.disabled = false;
+    questionSaveBtn.textContent = 'Envoyer ma réponse';
+  } else {
+    // J'ai répondu : on montre ma bulle + bouton éditer
+    questionAnswerWrap.style.display = 'none';
+    questionRevealEl.style.display = 'block';
+    questionRevealEl.innerHTML = bubbleHtml(`Toi (${myProfile.pseudo})`, mine.answer_text, true);
+
+    if (partner) {
+      questionRevealEl.innerHTML += bubbleHtml(pseudoById[partner.user_id] || 'Partenaire', partner.answer_text, false);
+    } else {
+      questionRevealEl.innerHTML += `<div class="question-waiting">En attente de la réponse de ton·a partenaire…</div>`;
+    }
+    questionRevealEl.innerHTML += `
+      <div class="game-actions">
+        <button class="btn" id="questionEditBtn">Modifier ma réponse</button>
+      </div>`;
+    document.getElementById('questionEditBtn').onclick = () => {
+      questionAnswerWrap.style.display = 'block';
+      questionInputEl.value = mine.answer_text;
+      questionInputEl.focus();
+    };
+  }
+
+  // Historique des jours passés (groupés par date)
+  const { data: pastRaw } = await sb.from('daily_answers').select('*')
+    .lt('question_date', today).order('question_date', { ascending: false }).limit(120);
+
+  questionHistoryEl.innerHTML = '';
+  if (!pastRaw || pastRaw.length === 0) {
+    questionHistoryEl.innerHTML = '<div class="history-empty">Les questions précédentes apparaîtront ici.</div>';
+    return;
+  }
+  const byDate = {};
+  pastRaw.forEach(d => { (byDate[d.question_date] = byDate[d.question_date] || []).push(d); });
+  Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0])).forEach(([date, items]) => {
+    const day = document.createElement('div');
+    day.className = 'question-day';
+    const bubbles = items.map(it => bubbleHtml(
+      pseudoById[it.user_id] || '—',
+      it.answer_text,
+      it.user_id === myProfile.id
+    )).join('');
+    day.innerHTML = `
+      <div class="question-day-header">
+        <div class="question-day-date">${formatDateFr(date)}</div>
+        <div class="question-day-text">« ${escapeHtml(items[0].question_text)} »</div>
+      </div>
+      ${bubbles}`;
+    questionHistoryEl.appendChild(day);
+  });
+}
+
+async function renderQuestionView() {
+  if (!myUser || !myProfile || !myProfile.couple_id) {
+    questionGateEl.style.display = 'block';
+    questionMainEl.style.display = 'none';
+    return;
+  }
+  questionGateEl.style.display = 'none';
+  questionMainEl.style.display = 'block';
+  questionTextEl.textContent = todayQuestion();
+  await refreshQuestionUI();
+}
+
+document.getElementById('questionGoAuth').addEventListener('click', () => switchView('drawing'));
+
+// =============================================================
+// LISTE À FAIRE AU RETOUR (bucket)
+// =============================================================
+const bucketGateEl = document.getElementById('bucketGate');
+const bucketMainEl = document.getElementById('bucketMain');
+const bucketListEl = document.getElementById('bucketList');
+const bucketInputEl = document.getElementById('bucketInput');
+const bucketAddBtn = document.getElementById('bucketAdd');
+const bucketStatsEl = document.getElementById('bucketStats');
+
+async function loadBucketItems() {
+  if (!myProfile || !myProfile.couple_id) return [];
+  const { data, error } = await sb.from('bucket_items')
+    .select('*').eq('couple_id', myProfile.couple_id)
+    .order('done', { ascending: true })
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function refreshBucketUI() {
+  if (!myProfile || !myProfile.couple_id) return;
+  const items = await loadBucketItems();
+
+  const { data: profiles } = await sb.from('profiles')
+    .select('id,pseudo').eq('couple_id', myProfile.couple_id);
+  const pseudoById = Object.fromEntries((profiles || []).map(p => [p.id, p.pseudo]));
+
+  const total = items.length;
+  const done = items.filter(i => i.done).length;
+  bucketStatsEl.innerHTML = total === 0
+    ? `Commencez votre liste : <strong>0 idée</strong>`
+    : `<strong>${done}/${total}</strong> chose${total > 1 ? 's' : ''} cochée${done > 1 ? 's' : ''}`;
+
+  bucketListEl.innerHTML = '';
+  if (items.length === 0) {
+    bucketListEl.innerHTML = '<div class="history-empty">Ajoutez votre première idée 💫</div>';
+    return;
+  }
+  items.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'bucket-item' + (it.done ? ' done' : '');
+    const author = pseudoById[it.created_by] || '—';
+    const doneBy = it.done && it.done_by ? (pseudoById[it.done_by] || '—') : null;
+    row.innerHTML = `
+      <div class="bucket-check">${it.done ? '✓' : ''}</div>
+      <div class="bucket-text">
+        ${escapeHtml(it.text)}
+        <div class="bucket-meta">Ajouté par ${escapeHtml(author)}${doneBy ? ` · coché par ${escapeHtml(doneBy)}` : ''}</div>
+      </div>
+      <button class="bucket-del" title="Supprimer">🗑</button>`;
+    row.querySelector('.bucket-check').onclick = () => toggleBucketItem(it);
+    row.querySelector('.bucket-del').onclick = () => {
+      if (confirm("Supprimer cette idée ?")) deleteBucketItem(it.id);
+    };
+    bucketListEl.appendChild(row);
+  });
+}
+
+async function addBucketItem() {
+  if (!myProfile || !myProfile.couple_id) return;
+  const text = bucketInputEl.value.trim();
+  if (!text) return;
+  bucketAddBtn.disabled = true;
+  try {
+    const { error } = await sb.from('bucket_items').insert({
+      couple_id: myProfile.couple_id,
+      created_by: myProfile.id,
+      text
+    });
+    if (error) throw error;
+    bucketInputEl.value = '';
+    await refreshBucketUI();
+  } catch (e) {
+    alert("Erreur : " + e.message);
+  } finally {
+    bucketAddBtn.disabled = false;
+  }
+}
+bucketAddBtn.addEventListener('click', addBucketItem);
+bucketInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addBucketItem(); }
+});
+
+async function toggleBucketItem(item) {
+  const newDone = !item.done;
+  const { error } = await sb.from('bucket_items').update({
+    done: newDone,
+    done_by: newDone ? myProfile.id : null,
+    done_at: newDone ? new Date().toISOString() : null
+  }).eq('id', item.id);
+  if (error) { alert("Erreur : " + error.message); return; }
+  await refreshBucketUI();
+}
+
+async function deleteBucketItem(id) {
+  const { error } = await sb.from('bucket_items').delete().eq('id', id);
+  if (error) { alert("Erreur : " + error.message); return; }
+  await refreshBucketUI();
+}
+
+async function renderBucketView() {
+  if (!myUser || !myProfile || !myProfile.couple_id) {
+    bucketGateEl.style.display = 'block';
+    bucketMainEl.style.display = 'none';
+    return;
+  }
+  bucketGateEl.style.display = 'none';
+  bucketMainEl.style.display = 'block';
+  await refreshBucketUI();
+}
+
+document.getElementById('bucketGoAuth').addEventListener('click', () => switchView('drawing'));
+
+// =============================================================
 // NAVIGATION (bottom nav + top burger)
 // =============================================================
 const burgerBtn = document.getElementById('burgerBtn');
@@ -907,8 +1302,17 @@ async function switchView(view) {
   document.getElementById('view-' + view).classList.add('active');
   if (view === 'capsules') renderCapsules();
   if (view === 'game' && !gameState) startGame();
+  if (view === 'puzzle' && !puzzleState) startPuzzle(+puzzleSizeEl.value);
   if (view === 'drawing') {
     try { await loadProfile(); renderDrawingView(); }
+    catch (e) { console.error(e); }
+  }
+  if (view === 'question') {
+    try { await loadProfile(); renderQuestionView(); }
+    catch (e) { console.error(e); }
+  }
+  if (view === 'bucket') {
+    try { await loadProfile(); renderBucketView(); }
     catch (e) { console.error(e); }
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });

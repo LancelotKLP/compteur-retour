@@ -357,6 +357,145 @@
     text-decoration: underline;
   }
 
+  /* ============ PUZZLE PHOTO ============ */
+  .puzzle-board {
+    display: grid;
+    grid-template-columns: repeat(var(--puzzle-size, 3), 1fr);
+    gap: 4px;
+    aspect-ratio: 1;
+    margin-bottom: 16px;
+    background: rgba(255, 126, 179, 0.15);
+    border-radius: 16px;
+    padding: 4px;
+  }
+  .puzzle-tile {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    cursor: pointer;
+    background-size: calc(100% * var(--puzzle-size, 3)) calc(100% * var(--puzzle-size, 3));
+    background-repeat: no-repeat;
+    transition: transform .15s ease;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  .puzzle-tile:active { transform: scale(0.96); }
+  .puzzle-tile.empty {
+    background: rgba(0, 0, 0, 0.25); cursor: default; box-shadow: none;
+  }
+  .puzzle-tile.solved { box-shadow: inset 0 0 0 1px rgba(255, 208, 132, 0.5); }
+  .puzzle-preview {
+    width: 70px; height: 70px; border-radius: 12px;
+    object-fit: cover; flex-shrink: 0;
+    border: 1px solid var(--card-border);
+  }
+  .puzzle-info {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 10px 12px; margin-bottom: 12px;
+  }
+  .puzzle-info-text { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .puzzle-info-text strong { color: var(--accent-2); font-weight: 500; }
+
+  /* ============ QUESTION DU JOUR ============ */
+  .question-card {
+    background: linear-gradient(135deg, rgba(255, 126, 179, 0.18), rgba(74, 25, 66, 0.35));
+    border: 1px solid rgba(255, 126, 179, 0.3);
+    border-radius: 24px; padding: 22px;
+    margin-bottom: 16px;
+  }
+  .question-label { font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .question-text { font-size: clamp(18px, 4.5vw, 22px); font-weight: 400; color: var(--accent-3); line-height: 1.4; }
+  .answer-area {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 14px; margin-bottom: 16px;
+  }
+  .answer-area textarea {
+    width: 100%; min-height: 90px; background: transparent;
+    border: none; outline: none; resize: vertical;
+    color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.5;
+  }
+  .answer-area textarea::placeholder { color: var(--muted); }
+  .bubble {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .bubble.mine { border-color: rgba(255, 126, 179, 0.3); background: rgba(255, 126, 179, 0.08); }
+  .bubble.partner { border-color: rgba(255, 208, 132, 0.3); background: rgba(255, 208, 132, 0.06); }
+  .bubble-author { font-size: 12px; color: var(--accent-2); font-weight: 500; margin-bottom: 4px; }
+  .bubble.partner .bubble-author { color: var(--gold); }
+  .bubble-text { font-size: 15px; line-height: 1.5; color: var(--text); font-weight: 300; white-space: pre-wrap; }
+  .question-waiting {
+    background: var(--card); border: 1px dashed var(--card-border);
+    border-radius: 14px; padding: 16px; text-align: center;
+    color: var(--muted); font-size: 13px; margin-bottom: 10px;
+  }
+  .question-day {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 14px; margin-bottom: 12px;
+  }
+  .question-day-header { margin-bottom: 10px; }
+  .question-day-date { font-size: 12px; color: var(--accent-2); font-weight: 500; }
+  .question-day-text { font-size: 14px; color: var(--text); margin-top: 2px; font-style: italic; }
+
+  /* ============ LISTE À FAIRE AU RETOUR ============ */
+  .bucket-add {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .bucket-add input {
+    flex: 1; background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text); padding: 12px 14px; border-radius: 12px;
+    font-size: 15px; font-family: inherit; outline: none;
+  }
+  .bucket-add input:focus { border-color: var(--accent); }
+  .bucket-add button {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--bg-1); border: none; padding: 0 18px;
+    border-radius: 12px; font-weight: 500; font-family: inherit;
+    cursor: pointer; font-size: 15px;
+  }
+  .bucket-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .bucket-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 14px;
+    transition: opacity .2s ease;
+  }
+  .bucket-item.done { opacity: 0.55; }
+  .bucket-check {
+    width: 22px; height: 22px; border-radius: 6px;
+    border: 1.5px solid var(--card-border); flex-shrink: 0;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .bucket-item.done .bucket-check {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent; color: var(--bg-1); font-size: 14px;
+  }
+  .bucket-text {
+    flex: 1; font-size: 14px; line-height: 1.4; color: var(--text);
+    word-break: break-word;
+  }
+  .bucket-item.done .bucket-text { text-decoration: line-through; color: var(--muted); }
+  .bucket-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .bucket-del {
+    background: transparent; border: none; color: var(--muted);
+    cursor: pointer; font-size: 16px; padding: 4px 6px; opacity: 0.6;
+    transition: opacity .2s ease;
+  }
+  .bucket-del:hover { opacity: 1; color: #ff9aa2; }
+  .bucket-stats {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;
+    font-size: 13px; color: var(--muted); text-align: center;
+  }
+  .bucket-stats strong { color: var(--accent-2); font-weight: 500; }
+
+  .couple-gate {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 28px 22px; text-align: center;
+  }
+  .couple-gate h3 { color: var(--accent-2); font-weight: 400; font-size: 18px; margin-bottom: 8px; }
+  .couple-gate p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+
   /* ============ NAV (bottom — desktop/tablette) ============ */
   .nav {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -368,7 +507,7 @@
   }
   .nav-inner {
     max-width: 640px; margin: 0 auto;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
   }
   .nav-btn {
     background: transparent; border: none; color: var(--muted);
@@ -377,7 +516,8 @@
     transition: color .2s ease, background .2s ease;
     font-family: inherit; font-size: 10px; letter-spacing: 0.05em;
   }
-  .nav-btn .nav-icon { font-size: 22px; }
+  .nav-btn .nav-icon { font-size: 20px; }
+  .nav-btn span:last-child { font-size: 9px; }
   .nav-btn.active { color: var(--accent-2); background: rgba(255, 126, 179, 0.1); }
   .nav-btn:active { transform: scale(0.95); }
 
@@ -517,8 +657,17 @@
     <button class="menu-btn" data-view="game">
       <span class="menu-icon">🎴</span><span>Jeu mémoire</span>
     </button>
+    <button class="menu-btn" data-view="puzzle">
+      <span class="menu-icon">🧩</span><span>Puzzle photo</span>
+    </button>
     <button class="menu-btn" data-view="drawing">
       <span class="menu-icon">🎨</span><span>Dessin du jour</span>
+    </button>
+    <button class="menu-btn" data-view="question">
+      <span class="menu-icon">💬</span><span>Question du jour</span>
+    </button>
+    <button class="menu-btn" data-view="bucket">
+      <span class="menu-icon">📝</span><span>Liste retour</span>
     </button>
   </div>
 
@@ -598,6 +747,83 @@
       </div>
     </section>
 
+    <!-- ============ VIEW: PUZZLE ============ -->
+    <section class="view" id="view-puzzle">
+      <h1 class="title">Puzzle photo</h1>
+      <div class="puzzle-info">
+        <img id="puzzlePreview" class="puzzle-preview" alt="" />
+        <div class="puzzle-info-text">
+          <strong id="puzzleMoves">0</strong> coups<br/>
+          Touche une tuile à côté de la case vide pour la déplacer.
+        </div>
+      </div>
+      <div class="game-size">
+        <label for="puzzleSize">Difficulté</label>
+        <select id="puzzleSize">
+          <option value="3" selected>Facile — 3×3</option>
+          <option value="4">Moyen — 4×4</option>
+          <option value="5">Difficile — 5×5</option>
+        </select>
+      </div>
+      <div id="puzzleWinBanner"></div>
+      <div class="puzzle-board" id="puzzleBoard"></div>
+      <div class="game-actions">
+        <button class="btn" id="puzzleNewPhoto">Autre photo</button>
+        <button class="btn primary" id="puzzleShuffle">Mélanger</button>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: QUESTION DU JOUR ============ -->
+    <section class="view" id="view-question">
+      <h1 class="title">Question du jour</h1>
+      <div id="questionGate" style="display:none">
+        <div class="couple-gate">
+          <h3>Question du jour</h3>
+          <p>Ce mode est partagé avec ton·a partenaire. Va dans <strong>Dessin</strong> pour te connecter et rejoindre votre couple.</p>
+          <button class="btn primary" id="questionGoAuth">Aller à Dessin</button>
+        </div>
+      </div>
+      <div id="questionMain" style="display:none">
+        <div class="question-card">
+          <div class="question-label">Aujourd'hui</div>
+          <div class="question-text" id="questionText">…</div>
+        </div>
+        <div id="questionAnswerWrap">
+          <div class="answer-area">
+            <textarea id="questionInput" placeholder="Écris ta réponse ici…" maxlength="600"></textarea>
+          </div>
+          <div class="game-actions" style="margin-bottom: 16px">
+            <button class="btn primary" id="questionSave">Envoyer ma réponse</button>
+          </div>
+        </div>
+        <div id="questionReveal" style="display:none"></div>
+        <div class="section-title">Jours passés</div>
+        <div id="questionHistory">
+          <div class="history-empty">Les questions précédentes apparaîtront ici.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: LISTE RETOUR ============ -->
+    <section class="view" id="view-bucket">
+      <h1 class="title">À faire au retour</h1>
+      <div id="bucketGate" style="display:none">
+        <div class="couple-gate">
+          <h3>Liste partagée</h3>
+          <p>Cette liste est partagée avec ton·a partenaire. Va dans <strong>Dessin</strong> pour te connecter et rejoindre votre couple.</p>
+          <button class="btn primary" id="bucketGoAuth">Aller à Dessin</button>
+        </div>
+      </div>
+      <div id="bucketMain" style="display:none">
+        <div class="bucket-stats" id="bucketStats">—</div>
+        <div class="bucket-add">
+          <input id="bucketInput" placeholder="Une chose à faire ensemble…" maxlength="200" />
+          <button id="bucketAdd">Ajouter</button>
+        </div>
+        <div class="bucket-list" id="bucketList"></div>
+      </div>
+    </section>
+
     <!-- ============ VIEW: DESSIN ============ -->
     <section class="view" id="view-drawing">
       <h1 class="title">Dessin du jour</h1>
@@ -673,10 +899,19 @@
         <span class="nav-icon">💌</span><span>Capsules</span>
       </button>
       <button class="nav-btn" data-view="game">
-        <span class="nav-icon">🎴</span><span>Jeu</span>
+        <span class="nav-icon">🎴</span><span>Mémoire</span>
+      </button>
+      <button class="nav-btn" data-view="puzzle">
+        <span class="nav-icon">🧩</span><span>Puzzle</span>
       </button>
       <button class="nav-btn" data-view="drawing">
         <span class="nav-icon">🎨</span><span>Dessin</span>
+      </button>
+      <button class="nav-btn" data-view="question">
+        <span class="nav-icon">💬</span><span>Question</span>
+      </button>
+      <button class="nav-btn" data-view="bucket">
+        <span class="nav-icon">📝</span><span>Liste</span>
       </button>
     </div>
   </nav>

@@ -161,5 +161,123 @@ create policy "drawings_delete" on public.drawings
   );
 
 -- ============================================================
+-- 5) Question du jour (daily_answers)
+-- ============================================================
+
+create table if not exists public.daily_answers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  question_date date not null,
+  question_text text not null,
+  answer_text text not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (user_id, question_date)
+);
+
+create index if not exists daily_answers_couple_date_idx
+  on public.daily_answers (couple_id, question_date desc);
+
+drop trigger if exists daily_answers_updated_at on public.daily_answers;
+create trigger daily_answers_updated_at
+  before update on public.daily_answers
+  for each row execute function public.set_updated_at();
+
+alter table public.daily_answers enable row level security;
+
+-- SELECT : sa propre réponse toujours ; celle du partenaire si soi-même a déjà répondu (même jour)
+--          OU si la date est passée
+drop policy if exists "daily_answers_select" on public.daily_answers;
+create policy "daily_answers_select" on public.daily_answers
+  for select to authenticated using (
+    user_id = auth.uid()
+    or (
+      couple_id = public.my_couple_id()
+      and (
+        question_date < (now() at time zone 'Europe/Paris')::date
+        or exists (
+          select 1 from public.daily_answers a2
+          where a2.user_id = auth.uid()
+            and a2.question_date = daily_answers.question_date
+        )
+      )
+    )
+  );
+
+drop policy if exists "daily_answers_insert" on public.daily_answers;
+create policy "daily_answers_insert" on public.daily_answers
+  for insert to authenticated with check (
+    user_id = auth.uid()
+    and couple_id = public.my_couple_id()
+  );
+
+drop policy if exists "daily_answers_update" on public.daily_answers;
+create policy "daily_answers_update" on public.daily_answers
+  for update to authenticated using (
+    user_id = auth.uid()
+    and question_date = (now() at time zone 'Europe/Paris')::date
+  );
+
+drop policy if exists "daily_answers_delete" on public.daily_answers;
+create policy "daily_answers_delete" on public.daily_answers
+  for delete to authenticated using (
+    user_id = auth.uid()
+    and question_date = (now() at time zone 'Europe/Paris')::date
+  );
+
+-- ============================================================
+-- 6) Liste à faire au retour (bucket_items)
+-- ============================================================
+
+create table if not exists public.bucket_items (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  created_by uuid not null references public.profiles(id) on delete cascade,
+  text text not null,
+  done boolean not null default false,
+  done_by uuid references public.profiles(id) on delete set null,
+  done_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists bucket_items_couple_idx
+  on public.bucket_items (couple_id, done, created_at desc);
+
+drop trigger if exists bucket_items_updated_at on public.bucket_items;
+create trigger bucket_items_updated_at
+  before update on public.bucket_items
+  for each row execute function public.set_updated_at();
+
+alter table public.bucket_items enable row level security;
+
+-- Les items sont partagés entre les deux membres du couple
+drop policy if exists "bucket_items_select" on public.bucket_items;
+create policy "bucket_items_select" on public.bucket_items
+  for select to authenticated using (
+    couple_id = public.my_couple_id()
+  );
+
+drop policy if exists "bucket_items_insert" on public.bucket_items;
+create policy "bucket_items_insert" on public.bucket_items
+  for insert to authenticated with check (
+    couple_id = public.my_couple_id()
+    and created_by = auth.uid()
+  );
+
+drop policy if exists "bucket_items_update" on public.bucket_items;
+create policy "bucket_items_update" on public.bucket_items
+  for update to authenticated using (
+    couple_id = public.my_couple_id()
+  );
+
+drop policy if exists "bucket_items_delete" on public.bucket_items;
+create policy "bucket_items_delete" on public.bucket_items
+  for delete to authenticated using (
+    couple_id = public.my_couple_id()
+  );
+
+-- ============================================================
 -- DONE
 -- ============================================================
