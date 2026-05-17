@@ -34,8 +34,14 @@ function saveState(s) { localStorage.setItem(LS_KEY, JSON.stringify(s)); }
 
 let state = Object.assign({
   opened: {}, streak: 0, lastOpenDate: null,
-  memoryBestTime: null, memoryBestMoves: null
+  memoryBestTime: null, memoryBestMoves: null,
+  memoryBests: {}
 }, loadState());
+if (!state.memoryBests) state.memoryBests = {};
+// Migration : ancien record (4x4) -> nouvelle structure par taille
+if (state.memoryBestTime != null && state.memoryBests['4x4'] == null) {
+  state.memoryBests['4x4'] = { time: state.memoryBestTime, moves: state.memoryBestMoves };
+}
 function persist() { saveState(state); }
 
 // =============================================================
@@ -191,22 +197,35 @@ const gameTimeEl = document.getElementById('gameTime');
 const gameMovesEl = document.getElementById('gameMoves');
 const gameBestEl = document.getElementById('gameBest');
 const winBanner = document.getElementById('winBanner');
+const gridSizeEl = document.getElementById('gridSize');
 document.getElementById('newGame').addEventListener('click', startGame);
+gridSizeEl.addEventListener('change', startGame);
 
 let gameState = null;
 
+function currentGridSize() {
+  const [cols, rows] = gridSizeEl.value.split('x').map(Number);
+  return { key: gridSizeEl.value, cols, rows, cards: cols * rows, pairs: (cols * rows) / 2 };
+}
+
 function startGame() {
+  const size = currentGridSize();
   const pool = APP_CONTENT.memoryPairs;
+  const nbPairs = Math.min(size.pairs, pool.length);
   const shuffledPool = [...pool].sort(() => Math.random() - 0.5);
-  const pairs = shuffledPool.slice(0, 8);
+  const pairs = shuffledPool.slice(0, nbPairs);
   const deck = [...pairs, ...pairs]
     .map(v => ({ v, k: Math.random() }))
     .sort((a, b) => a.k - b.k)
     .map(o => o.v);
 
+  boardEl.style.setProperty('--grid-cols', size.cols);
+  boardEl.style.setProperty('--grid-rows', size.rows);
+
   gameState = {
     deck, flipped: [], matched: new Set(), moves: 0,
-    startTime: Date.now(), timer: null, locked: false, won: false
+    startTime: Date.now(), timer: null, locked: false, won: false,
+    sizeKey: size.key
   };
 
   winBanner.innerHTML = '';
@@ -237,7 +256,9 @@ function updateGameTime() {
   gameTimeEl.textContent = Math.floor((Date.now() - gameState.startTime) / 1000) + 's';
 }
 function updateBestDisplay() {
-  gameBestEl.textContent = state.memoryBestTime != null ? state.memoryBestTime + 's' : '—';
+  const key = gridSizeEl.value;
+  const best = state.memoryBests[key];
+  gameBestEl.textContent = best ? best.time + 's' : '—';
 }
 
 function flipCard(i) {
@@ -275,10 +296,15 @@ function winGame() {
   gameState.won = true;
   clearInterval(gameState.timer);
   const seconds = Math.floor((Date.now() - gameState.startTime) / 1000);
-  const isRecord = state.memoryBestTime == null || seconds < state.memoryBestTime;
+  const key = gameState.sizeKey;
+  const prev = state.memoryBests[key];
+  const isRecord = !prev || seconds < prev.time;
   if (isRecord) {
-    state.memoryBestTime = seconds;
-    state.memoryBestMoves = gameState.moves;
+    state.memoryBests[key] = { time: seconds, moves: gameState.moves };
+    if (key === '4x4') {
+      state.memoryBestTime = seconds;
+      state.memoryBestMoves = gameState.moves;
+    }
     persist();
     updateBestDisplay();
   }

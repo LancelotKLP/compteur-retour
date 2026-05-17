@@ -148,8 +148,21 @@
   /* ============ JEU MÉMOIRE ============ */
   .game-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
   .game-board {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-    aspect-ratio: 1; margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(var(--grid-cols, 4), 1fr);
+    gap: 10px;
+    aspect-ratio: var(--grid-cols, 4) / var(--grid-rows, 4);
+    margin-bottom: 16px;
+  }
+  .game-size {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .game-size label { color: var(--muted); font-size: 14px; }
+  .game-size select {
+    flex: 1; background: var(--card); border: 1px solid var(--card-border);
+    color: var(--text); padding: 10px 12px; border-radius: 12px;
+    font-size: 14px; font-family: inherit;
   }
   .card { position: relative; cursor: pointer; perspective: 1000px; }
   .card-inner {
@@ -568,6 +581,15 @@
           <div class="stat-value" id="gameBest">—</div>
           <div class="stat-label">Record</div>
         </div>
+      </div>
+      <div class="game-size">
+        <label for="gridSize">Taille</label>
+        <select id="gridSize">
+          <option value="3x4">Facile — 3×4 (6 paires)</option>
+          <option value="4x4" selected>Moyen — 4×4 (8 paires)</option>
+          <option value="4x5">Difficile — 4×5 (10 paires)</option>
+          <option value="6x6">Expert — 6×6 (18 paires)</option>
+        </select>
       </div>
       <div id="winBanner"></div>
       <div class="game-board" id="board"></div>
