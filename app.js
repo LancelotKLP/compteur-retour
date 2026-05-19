@@ -1579,10 +1579,11 @@ function startJigsaw(size, photoUrl) {
 }
 
 function buildJigsaw(size, photo, rows, cols) {
-  const targetW = jigTargetEl.clientWidth;
+  const wsRect0 = jigWorkspaceEl.getBoundingClientRect();
+  const targetRect0 = jigTargetEl.getBoundingClientRect();
+  const targetW = targetRect0.width;
   if (targetW === 0) {
     // Vue pas visible (user a navigué ailleurs avant la fin du preload). Abandon.
-    // jigsawState reste null → sera relancé au prochain switchView('jigsaw').
     return;
   }
 
@@ -1597,16 +1598,21 @@ function buildJigsaw(size, photo, rows, cols) {
 
   const edges = generateJigEdges(rows, cols);
 
-  // Forcer le recompute des offsets après changement de hauteur du tray
-  // eslint-disable-next-line no-unused-expressions
-  jigTrayEl.offsetHeight;
+  // Forcer le recompute du layout après changement de hauteur du tray
+  void jigTrayEl.offsetHeight;
 
-  const targetX = jigTargetEl.offsetLeft;
-  const targetY = jigTargetEl.offsetTop;
-  const trayX = jigTrayEl.offsetLeft;
-  const trayY = jigTrayEl.offsetTop;
-  const trayW = jigTrayEl.offsetWidth;
-  const trayH = jigTrayEl.offsetHeight;
+  // Re-lire les positions en coordonnées workspace (via getBoundingClientRect, plus fiable)
+  const wsRect = jigWorkspaceEl.getBoundingClientRect();
+  const targetRect = jigTargetEl.getBoundingClientRect();
+  const trayRect = jigTrayEl.getBoundingClientRect();
+  const targetX = targetRect.left - wsRect.left;
+  const targetY = targetRect.top - wsRect.top;
+  const trayX = trayRect.left - wsRect.left;
+  const trayY = trayRect.top - wsRect.top;
+  const trayW = trayRect.width;
+  const trayH = trayRect.height;
+
+  console.log('[jigsaw] build', { size, pieceW, PAD, containerSize, targetX, targetY, trayX, trayY, trayW, trayH });
 
   const pieces = [];
 
@@ -1643,12 +1649,17 @@ function buildJigsaw(size, photo, rows, cols) {
 
       jigWorkspaceEl.appendChild(el);
       pieces.push(piece);
+
+      if (i === 0 && j === 0) {
+        console.log('[jigsaw] first piece', { x: piece.x, y: piece.y, correctX: piece.correctX, correctY: piece.correctY, containerSize, pathLen: pathD.length });
+      }
     }
   }
 
   jigsawState = { rows, cols, pieces, photo, pieceW, PAD, placedCount: 0 };
   jigPlacedEl.textContent = '0';
   jigTotalEl.textContent = pieces.length;
+  console.log('[jigsaw] pieces created:', pieces.length, 'workspace children:', jigWorkspaceEl.children.length);
 }
 
 function jigOnPointerDown(e, piece) {
