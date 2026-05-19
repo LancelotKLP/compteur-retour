@@ -430,6 +430,12 @@
     user-select: none; -webkit-user-select: none;
     touch-action: none;
   }
+  .jig-pile {
+    position: relative;
+    width: 100%;
+    margin-bottom: 12px;
+    /* height set dynamically en JS */
+  }
   .jig-target {
     position: relative;
     width: 100%;
@@ -437,22 +443,6 @@
     background: rgba(255,255,255,0.03);
     border: 1px dashed var(--card-border);
     border-radius: 12px;
-    margin-bottom: 12px;
-    overflow: hidden;
-  }
-  .jig-ghost {
-    position: absolute; inset: 0;
-    background-size: cover; background-position: center;
-    opacity: 0.10;
-    pointer-events: none;
-  }
-  .jig-tray {
-    position: relative;
-    width: 100%;
-    background: rgba(255,255,255,0.03);
-    border: 1px dashed var(--card-border);
-    border-radius: 12px;
-    /* height set dynamically en JS */
   }
   .jig-piece {
     position: absolute;
@@ -470,13 +460,8 @@
     transition: filter .15s ease;
     z-index: 100;
   }
-  .jig-piece.near-snap {
-    filter: drop-shadow(0 0 14px rgba(255, 126, 179, 0.7)) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-  }
-  .jig-piece.locked {
-    pointer-events: none;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
-    z-index: 5;
+  .jig-piece.correct {
+    filter: drop-shadow(0 0 10px rgba(127, 214, 193, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
   }
 
   /* ============ PUZZLE PHOTO ============ */
@@ -1007,8 +992,8 @@
       <div class="jig-info">
         <img id="jigPreview" class="jig-preview" alt="" />
         <div class="jig-info-text">
-          <strong id="jigPlaced">0</strong> / <strong id="jigTotal">9</strong> pièces placées<br/>
-          Attrape une pièce, place-la sur sa case. Elle se cale toute seule quand elle est proche.
+          <strong id="jigPlaced">0</strong> / <strong id="jigTotal">9</strong> à la bonne place<br/>
+          Attrape une pièce, dépose-la sur la grille. Elle se cale automatiquement sur la case la plus proche.
         </div>
       </div>
       <div class="game-size">
@@ -1021,8 +1006,8 @@
       </div>
       <div id="jigWinBanner"></div>
       <div class="jig-workspace" id="jigWorkspace">
-        <div class="jig-target" id="jigTarget"><div class="jig-ghost"></div></div>
-        <div class="jig-tray" id="jigTray"></div>
+        <div class="jig-pile" id="jigPile"></div>
+        <div class="jig-target" id="jigTarget"></div>
       </div>
       <div class="game-actions">
         <button class="btn" id="jigNewPhoto">Autre photo</button>

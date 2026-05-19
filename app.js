@@ -1484,8 +1484,7 @@ burgerBtn.addEventListener('click', () => setBurgerOpen(!menuOverlay.classList.c
 // =============================================================
 const jigWorkspaceEl = document.getElementById('jigWorkspace');
 const jigTargetEl = document.getElementById('jigTarget');
-const jigTrayEl = document.getElementById('jigTray');
-const jigGhostEl = document.querySelector('.jig-ghost');
+const jigPileEl = document.getElementById('jigPile');
 const jigPreviewEl = document.getElementById('jigPreview');
 const jigSizeEl = document.getElementById('jigSize');
 const jigPlacedEl = document.getElementById('jigPlaced');
@@ -1493,6 +1492,7 @@ const jigTotalEl = document.getElementById('jigTotal');
 const jigWinBannerEl = document.getElementById('jigWinBanner');
 
 let jigsawState = null;
+let jigGrid = null;          // jigGrid[i][j] = piece occupying cell, ou null
 let jigZCounter = 10;
 let jigDragging = null;
 let jigDragOffset = { x: 0, y: 0 };
@@ -1561,6 +1561,8 @@ function startJigsaw(size, photoUrl) {
   }
   jigWinBannerEl.innerHTML = '';
   jigDragging = null;
+  jigGrid = null;
+  jigsawState = null;
 
   const photo = photoUrl || pickRandomJigPhoto();
   if (!photo) {
@@ -1568,7 +1570,6 @@ function startJigsaw(size, photoUrl) {
     return;
   }
   jigPreviewEl.src = photo;
-  jigGhostEl.style.backgroundImage = `url('${photo}')`;
 
   const rows = size, cols = size;
 
@@ -1579,7 +1580,6 @@ function startJigsaw(size, photoUrl) {
 }
 
 function buildJigsaw(size, photo, rows, cols) {
-  const wsRect0 = jigWorkspaceEl.getBoundingClientRect();
   const targetRect0 = jigTargetEl.getBoundingClientRect();
   const targetW = targetRect0.width;
   if (targetW === 0) {
@@ -1591,28 +1591,27 @@ function buildJigsaw(size, photo, rows, cols) {
   const PAD = pieceW * 0.28;
   const containerSize = pieceW + 2 * PAD;
 
-  // Hauteur du tray adaptée au nombre de pièces
-  const trayHeightRatio = { 3: 0.55, 4: 0.85, 5: 1.25 };
-  const trayHeight = targetW * (trayHeightRatio[size] || 1.0);
-  jigTrayEl.style.height = trayHeight + 'px';
+  // Hauteur de la pile zone : juste un peu plus qu'une pièce
+  const pileHeight = containerSize + 30;
+  jigPileEl.style.height = pileHeight + 'px';
 
   const edges = generateJigEdges(rows, cols);
 
-  // Forcer le recompute du layout après changement de hauteur du tray
-  void jigTrayEl.offsetHeight;
+  // Forcer le recompute du layout
+  void jigPileEl.offsetHeight;
 
-  // Re-lire les positions en coordonnées workspace (via getBoundingClientRect, plus fiable)
+  // Positions en coords workspace
   const wsRect = jigWorkspaceEl.getBoundingClientRect();
   const targetRect = jigTargetEl.getBoundingClientRect();
-  const trayRect = jigTrayEl.getBoundingClientRect();
+  const pileRect = jigPileEl.getBoundingClientRect();
   const targetX = targetRect.left - wsRect.left;
   const targetY = targetRect.top - wsRect.top;
-  const trayX = trayRect.left - wsRect.left;
-  const trayY = trayRect.top - wsRect.top;
-  const trayW = trayRect.width;
-  const trayH = trayRect.height;
+  const pileX = pileRect.left - wsRect.left;
+  const pileY = pileRect.top - wsRect.top;
+  const pileW = pileRect.width;
 
-  console.log('[jigsaw] build', { size, pieceW, PAD, containerSize, targetX, targetY, trayX, trayY, trayW, trayH });
+  // Init grille
+  jigGrid = Array.from({length: rows}, () => Array(cols).fill(null));
 
   const pieces = [];
 
@@ -1633,13 +1632,14 @@ function buildJigsaw(size, photo, rows, cols) {
       el.style.clipPath = `path('${pathD}')`;
       el.style.webkitClipPath = `path('${pathD}')`;
 
-      const piece = { i, j, correctX, correctY, x: 0, y: 0, el, locked: false, containerSize };
+      const piece = { i, j, correctX, correctY, x: 0, y: 0, el, containerSize, cell: null, previousCell: null };
 
-      // Position initiale aléatoire dans le tray
-      const maxOffsetX = Math.max(0, trayW - containerSize);
-      const maxOffsetY = Math.max(0, trayH - containerSize);
-      piece.x = trayX + Math.random() * maxOffsetX;
-      piece.y = trayY + Math.random() * maxOffsetY;
+      // Position initiale empilée au centre de la zone pile, avec petit offset random
+      const pileCenterX = pileX + (pileW - containerSize) / 2;
+      const pileCenterY = pileY + (pileHeight - containerSize) / 2;
+      const scatterX = Math.min(60, Math.max(0, pileW - containerSize) / 2);
+      piece.x = pileCenterX + (Math.random() - 0.5) * 2 * scatterX;
+      piece.y = pileCenterY + (Math.random() - 0.5) * 16;
       el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
 
       el.addEventListener('pointerdown', (e) => jigOnPointerDown(e, piece));
@@ -1649,27 +1649,71 @@ function buildJigsaw(size, photo, rows, cols) {
 
       jigWorkspaceEl.appendChild(el);
       pieces.push(piece);
-
-      if (i === 0 && j === 0) {
-        console.log('[jigsaw] first piece', { x: piece.x, y: piece.y, correctX: piece.correctX, correctY: piece.correctY, containerSize, pathLen: pathD.length });
-      }
     }
   }
 
-  jigsawState = { rows, cols, pieces, photo, pieceW, PAD, placedCount: 0 };
-  jigPlacedEl.textContent = '0';
-  jigTotalEl.textContent = pieces.length;
-  console.log('[jigsaw] pieces created:', pieces.length, 'workspace children:', jigWorkspaceEl.children.length);
+  // Mélanger l'ordre Z (pour que la pile semble aléatoire, pas ordonnée par i,j)
+  [...pieces].sort(() => Math.random() - 0.5).forEach((p, idx) => {
+    p.el.style.zIndex = 10 + idx;
+  });
+  jigZCounter = 10 + pieces.length;
+
+  jigsawState = { rows, cols, pieces, photo, pieceW, PAD, containerSize, targetX, targetY };
+  updateJigCounter();
+}
+
+function updateJigCounter() {
+  if (!jigsawState) { jigPlacedEl.textContent = '0'; return; }
+  const correct = jigsawState.pieces.filter(p => p.cell && p.cell.i === p.i && p.cell.j === p.j).length;
+  jigPlacedEl.textContent = correct;
+  jigTotalEl.textContent = jigsawState.pieces.length;
+}
+
+function snapPieceToCell(piece, i, j) {
+  if (!jigsawState) return;
+  const {targetX, targetY, pieceW, PAD} = jigsawState;
+  piece.x = targetX + j * pieceW - PAD;
+  piece.y = targetY + i * pieceW - PAD;
+  piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
+  piece.cell = {i, j};
+  jigGrid[i][j] = piece;
+  piece.el.classList.toggle('correct', i === piece.i && j === piece.j);
+}
+
+function sendPieceToPile(piece) {
+  const wsRect = jigWorkspaceEl.getBoundingClientRect();
+  const pileRect = jigPileEl.getBoundingClientRect();
+  const pileX = pileRect.left - wsRect.left;
+  const pileY = pileRect.top - wsRect.top;
+  const pileW = pileRect.width;
+  const pileH = pileRect.height;
+  const cs = piece.containerSize;
+  const pileCenterX = pileX + (pileW - cs) / 2;
+  const pileCenterY = pileY + (pileH - cs) / 2;
+  const scatterX = Math.min(60, Math.max(0, pileW - cs) / 2);
+  piece.x = pileCenterX + (Math.random() - 0.5) * 2 * scatterX;
+  piece.y = pileCenterY + (Math.random() - 0.5) * 16;
+  piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
+  piece.cell = null;
+  piece.el.classList.remove('correct');
 }
 
 function jigOnPointerDown(e, piece) {
-  if (piece.locked) return;
   e.preventDefault();
   e.stopPropagation();
   jigDragging = piece;
   piece.el.classList.add('dragging');
+  piece.el.classList.remove('correct');
   piece.el.style.zIndex = ++jigZCounter;
   piece.el.setPointerCapture(e.pointerId);
+
+  // Mémoriser la cellule actuelle pour le swap éventuel, puis libérer la grille
+  piece.previousCell = piece.cell;
+  if (piece.cell && jigGrid) {
+    jigGrid[piece.cell.i][piece.cell.j] = null;
+    piece.cell = null;
+  }
+
   const wsRect = jigWorkspaceEl.getBoundingClientRect();
   jigDragOffset.x = e.clientX - wsRect.left - piece.x;
   jigDragOffset.y = e.clientY - wsRect.top - piece.y;
@@ -1682,34 +1726,50 @@ function jigOnPointerMove(e, piece) {
   piece.x = e.clientX - wsRect.left - jigDragOffset.x;
   piece.y = e.clientY - wsRect.top - jigDragOffset.y;
   piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
-  // Hint visuel quand on est dans la zone de snap
-  const dx = piece.x - piece.correctX;
-  const dy = piece.y - piece.correctY;
-  const SNAP = piece.containerSize * 0.25;
-  piece.el.classList.toggle('near-snap', Math.hypot(dx, dy) < SNAP);
 }
 
 function jigOnPointerUp(e, piece) {
   if (jigDragging !== piece) return;
   jigDragging = null;
   piece.el.classList.remove('dragging');
-  piece.el.classList.remove('near-snap');
-  // Snap si proche de la position correcte
-  const dx = piece.x - piece.correctX;
-  const dy = piece.y - piece.correctY;
-  const SNAP = piece.containerSize * 0.25;
-  if (Math.hypot(dx, dy) < SNAP) {
-    piece.x = piece.correctX;
-    piece.y = piece.correctY;
-    piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
-    piece.locked = true;
-    piece.el.classList.add('locked');
-    if (jigsawState) {
-      jigsawState.placedCount++;
-      jigPlacedEl.textContent = jigsawState.placedCount;
-      if (jigsawState.placedCount === jigsawState.pieces.length) jigWin();
+
+  if (!jigsawState) return;
+  const {targetX, targetY, pieceW, containerSize, rows, cols} = jigsawState;
+
+  // Centre de la pièce
+  const cx = piece.x + containerSize / 2;
+  const cy = piece.y + containerSize / 2;
+
+  // Centre dans la zone cible ?
+  const insideTarget = (
+    cx >= targetX && cx < targetX + cols * pieceW &&
+    cy >= targetY && cy < targetY + rows * pieceW
+  );
+
+  if (insideTarget) {
+    const j = Math.max(0, Math.min(cols - 1, Math.floor((cx - targetX) / pieceW)));
+    const i = Math.max(0, Math.min(rows - 1, Math.floor((cy - targetY) / pieceW)));
+
+    const occupant = jigGrid[i][j];
+    if (occupant && occupant !== piece) {
+      // Swap : déplace l'occupant vers la cellule précédente, ou vers la pile
+      if (piece.previousCell) {
+        snapPieceToCell(occupant, piece.previousCell.i, piece.previousCell.j);
+      } else {
+        sendPieceToPile(occupant);
+      }
     }
+    snapPieceToCell(piece, i, j);
   }
+  // Sinon : pièce reste libre où l'utilisateur l'a lâchée
+
+  updateJigCounter();
+
+  // Win = toutes les pièces sur leur bonne case
+  const allCorrect = jigsawState.pieces.every(p =>
+    p.cell && p.cell.i === p.i && p.cell.j === p.j
+  );
+  if (allCorrect) jigWin();
 }
 
 function jigWin() {
