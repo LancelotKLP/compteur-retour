@@ -148,7 +148,6 @@ window.APP_CONTENT = {
     { img: "photos/web/IMG_1444.jpg" },
     { img: "photos/web/IMG_1512.jpg" },
     { img: "photos/web/IMG_1527.jpg" },
-    { img: "photos/web/IMG_1545.jpg" },
     { img: "photos/web/IMG_1552.jpg" }
   ],
 
