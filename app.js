@@ -1774,11 +1774,14 @@ function jigOnPointerUp(e, piece) {
 
 function jigWin() {
   const msg = APP_CONTENT.puzzleWinMessage || "Puzzle terminé !";
+  const photo = jigsawState?.photo || '';
   jigWinBannerEl.innerHTML = `
     <div class="win-banner">
       <h3>🎉 Bravo !</h3>
+      ${photo ? `<img src="${photo}" alt="" style="width:100%;max-width:340px;border-radius:14px;margin:12px auto;display:block"/>` : ''}
       <p>${msg}</p>
     </div>`;
+  jigWinBannerEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 document.getElementById('jigShuffle').addEventListener('click', () => {
