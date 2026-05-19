@@ -411,6 +411,74 @@
     color: var(--muted); margin-top: 2px;
   }
 
+  /* ============ JIGSAW (vrai puzzle pièces) ============ */
+  .jig-info {
+    display: flex; gap: 12px; align-items: center;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px; margin-bottom: 12px;
+  }
+  .jig-preview {
+    width: 70px; height: 70px; object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--card-border);
+  }
+  .jig-info-text { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .jig-info-text strong { color: var(--accent-2); font-weight: 500; }
+
+  .jig-workspace {
+    position: relative;
+    margin-bottom: 16px;
+    user-select: none; -webkit-user-select: none;
+    touch-action: none;
+  }
+  .jig-target {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--card-border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .jig-ghost {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    opacity: 0.10;
+    pointer-events: none;
+  }
+  .jig-tray {
+    position: relative;
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--card-border);
+    border-radius: 12px;
+    /* height set dynamically en JS */
+  }
+  .jig-piece {
+    position: absolute;
+    cursor: grab;
+    touch-action: none;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    transition: filter .15s ease, transform .15s cubic-bezier(.4, 1.5, .5, 1);
+    will-change: transform;
+    z-index: 10;
+  }
+  .jig-piece.dragging {
+    cursor: grabbing;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5));
+    transition: filter .15s ease;
+    z-index: 100;
+  }
+  .jig-piece.near-snap {
+    filter: drop-shadow(0 0 14px rgba(255, 126, 179, 0.7)) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+  .jig-piece.locked {
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+    z-index: 5;
+  }
+
   /* ============ PUZZLE PHOTO ============ */
   .puzzle-board {
     display: grid;
@@ -630,7 +698,7 @@
   }
   .nav-inner {
     max-width: 640px; margin: 0 auto;
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px;
   }
   .nav-btn {
     background: transparent; border: none; color: var(--muted);
@@ -786,6 +854,9 @@
     <button class="menu-btn" data-view="puzzle">
       <span class="menu-icon">🧩</span><span>Puzzle photo</span>
     </button>
+    <button class="menu-btn" data-view="jigsaw">
+      <span class="menu-icon">🪡</span><span>Puzzle pièces</span>
+    </button>
     <button class="menu-btn" data-view="drawing">
       <span class="menu-icon">🎨</span><span>Dessin du jour</span>
     </button>
@@ -927,6 +998,35 @@
       <div class="game-actions">
         <button class="btn" id="puzzleNewPhoto">Autre photo</button>
         <button class="btn primary" id="puzzleShuffle">Mélanger</button>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: JIGSAW (vrai puzzle pièces) ============ -->
+    <section class="view" id="view-jigsaw">
+      <h1 class="title">Puzzle pièces</h1>
+      <div class="jig-info">
+        <img id="jigPreview" class="jig-preview" alt="" />
+        <div class="jig-info-text">
+          <strong id="jigPlaced">0</strong> / <strong id="jigTotal">9</strong> pièces placées<br/>
+          Attrape une pièce, place-la sur sa case. Elle se cale toute seule quand elle est proche.
+        </div>
+      </div>
+      <div class="game-size">
+        <label for="jigSize">Difficulté</label>
+        <select id="jigSize">
+          <option value="3" selected>Facile — 3×3</option>
+          <option value="4">Moyen — 4×4</option>
+          <option value="5">Difficile — 5×5</option>
+        </select>
+      </div>
+      <div id="jigWinBanner"></div>
+      <div class="jig-workspace" id="jigWorkspace">
+        <div class="jig-target" id="jigTarget"><div class="jig-ghost"></div></div>
+        <div class="jig-tray" id="jigTray"></div>
+      </div>
+      <div class="game-actions">
+        <button class="btn" id="jigNewPhoto">Autre photo</button>
+        <button class="btn primary" id="jigShuffle">Recommencer</button>
       </div>
     </section>
 
@@ -1091,6 +1191,9 @@
       </button>
       <button class="nav-btn" data-view="puzzle">
         <span class="nav-icon">🧩</span><span>Puzzle</span>
+      </button>
+      <button class="nav-btn" data-view="jigsaw">
+        <span class="nav-icon">🪡</span><span>Pièces</span>
       </button>
       <button class="nav-btn" data-view="drawing">
         <span class="nav-icon">🎨</span><span>Dessin</span>

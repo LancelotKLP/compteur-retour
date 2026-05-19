@@ -1479,6 +1479,245 @@ function setBurgerOpen(open) {
 }
 burgerBtn.addEventListener('click', () => setBurgerOpen(!menuOverlay.classList.contains('open')));
 
+// =============================================================
+// JIGSAW (vrai puzzle pièces avec drag-and-drop)
+// =============================================================
+const jigWorkspaceEl = document.getElementById('jigWorkspace');
+const jigTargetEl = document.getElementById('jigTarget');
+const jigTrayEl = document.getElementById('jigTray');
+const jigGhostEl = document.querySelector('.jig-ghost');
+const jigPreviewEl = document.getElementById('jigPreview');
+const jigSizeEl = document.getElementById('jigSize');
+const jigPlacedEl = document.getElementById('jigPlaced');
+const jigTotalEl = document.getElementById('jigTotal');
+const jigWinBannerEl = document.getElementById('jigWinBanner');
+
+let jigsawState = null;
+let jigZCounter = 10;
+let jigDragging = null;
+let jigDragOffset = { x: 0, y: 0 };
+
+function pickRandomJigPhoto() {
+  const photos = (APP_CONTENT.memoryPairs || []).filter(p => p && p.img);
+  if (photos.length === 0) return null;
+  return photos[Math.floor(Math.random() * photos.length)].img;
+}
+
+function generateJigEdges(rows, cols) {
+  const edges = [];
+  for (let i = 0; i < rows; i++) {
+    edges[i] = [];
+    for (let j = 0; j < cols; j++) {
+      edges[i][j] = {
+        top: i === 0 ? 0 : -edges[i-1][j].bottom,
+        left: j === 0 ? 0 : -edges[i][j-1].right,
+        right: j === cols - 1 ? 0 : (Math.random() < 0.5 ? 1 : -1),
+        bottom: i === rows - 1 ? 0 : (Math.random() < 0.5 ? 1 : -1),
+      };
+    }
+  }
+  return edges;
+}
+
+function jigEdgeSegment(d, x1, y1, x2, y2, side, W) {
+  if (d === 0) return `L ${x2.toFixed(2)} ${y2.toFixed(2)} `;
+  let px = 0, py = 0;
+  if (side === 'top') py = -1;
+  if (side === 'right') px = 1;
+  if (side === 'bottom') py = 1;
+  if (side === 'left') px = -1;
+  px *= d; py *= d;
+  const ex = (x2 - x1) / W;
+  const ey = (y2 - y1) / W;
+  const NECK = 0.32, HEAD = 0.18, TAB_H = 0.20, CM = 1.3;
+  const pt = (f, perp = 0) => ({
+    x: x1 + ex * W * f + px * W * perp,
+    y: y1 + ey * W * f + py * W * perp,
+  });
+  const s = pt(NECK, 0);
+  const c1 = pt(NECK - HEAD, TAB_H * CM);
+  const c2 = pt(1 - NECK + HEAD, TAB_H * CM);
+  const e = pt(1 - NECK, 0);
+  return `L ${s.x.toFixed(2)} ${s.y.toFixed(2)} `
+       + `C ${c1.x.toFixed(2)} ${c1.y.toFixed(2)}, ${c2.x.toFixed(2)} ${c2.y.toFixed(2)}, ${e.x.toFixed(2)} ${e.y.toFixed(2)} `
+       + `L ${x2.toFixed(2)} ${y2.toFixed(2)} `;
+}
+
+function buildJigPiecePath(edges, W, PAD) {
+  let x = PAD, y = PAD;
+  let path = `M ${x.toFixed(2)} ${y.toFixed(2)} `;
+  path += jigEdgeSegment(edges.top, x, y, x + W, y, 'top', W);          x += W;
+  path += jigEdgeSegment(edges.right, x, y, x, y + W, 'right', W);      y += W;
+  path += jigEdgeSegment(edges.bottom, x, y, x - W, y, 'bottom', W);    x -= W;
+  path += jigEdgeSegment(edges.left, x, y, x, y - W, 'left', W);
+  path += 'Z';
+  return path;
+}
+
+function startJigsaw(size, photoUrl) {
+  // Nettoyer l'ancien puzzle
+  if (jigsawState) {
+    jigsawState.pieces.forEach(p => p.el?.remove());
+  }
+  jigWinBannerEl.innerHTML = '';
+  jigDragging = null;
+
+  const photo = photoUrl || pickRandomJigPhoto();
+  if (!photo) {
+    jigWinBannerEl.innerHTML = '<p style="color:var(--muted);text-align:center">Aucune photo disponible.</p>';
+    return;
+  }
+  jigPreviewEl.src = photo;
+  jigGhostEl.style.backgroundImage = `url('${photo}')`;
+
+  const rows = size, cols = size;
+
+  // Précharger l'image pour éviter le flash, puis layout après le prochain paint
+  const preload = new Image();
+  preload.onload = () => requestAnimationFrame(() => buildJigsaw(size, photo, rows, cols));
+  preload.src = photo;
+}
+
+function buildJigsaw(size, photo, rows, cols) {
+  const targetW = jigTargetEl.clientWidth;
+  if (targetW === 0) {
+    // Vue pas visible (user a navigué ailleurs avant la fin du preload). Abandon.
+    // jigsawState reste null → sera relancé au prochain switchView('jigsaw').
+    return;
+  }
+
+  const pieceW = targetW / cols;
+  const PAD = pieceW * 0.28;
+  const containerSize = pieceW + 2 * PAD;
+
+  // Hauteur du tray adaptée au nombre de pièces
+  const trayHeightRatio = { 3: 0.55, 4: 0.85, 5: 1.25 };
+  const trayHeight = targetW * (trayHeightRatio[size] || 1.0);
+  jigTrayEl.style.height = trayHeight + 'px';
+
+  const edges = generateJigEdges(rows, cols);
+
+  // Forcer le recompute des offsets après changement de hauteur du tray
+  // eslint-disable-next-line no-unused-expressions
+  jigTrayEl.offsetHeight;
+
+  const targetX = jigTargetEl.offsetLeft;
+  const targetY = jigTargetEl.offsetTop;
+  const trayX = jigTrayEl.offsetLeft;
+  const trayY = jigTrayEl.offsetTop;
+  const trayW = jigTrayEl.offsetWidth;
+  const trayH = jigTrayEl.offsetHeight;
+
+  const pieces = [];
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const correctX = targetX + j * pieceW - PAD;
+      const correctY = targetY + i * pieceW - PAD;
+
+      const el = document.createElement('div');
+      el.className = 'jig-piece';
+      el.style.width = containerSize + 'px';
+      el.style.height = containerSize + 'px';
+      el.style.backgroundImage = `url('${photo}')`;
+      el.style.backgroundSize = `${cols * pieceW}px ${rows * pieceW}px`;
+      el.style.backgroundPosition = `${-(j * pieceW - PAD)}px ${-(i * pieceW - PAD)}px`;
+
+      const pathD = buildJigPiecePath(edges[i][j], pieceW, PAD);
+      el.style.clipPath = `path('${pathD}')`;
+      el.style.webkitClipPath = `path('${pathD}')`;
+
+      const piece = { i, j, correctX, correctY, x: 0, y: 0, el, locked: false, containerSize };
+
+      // Position initiale aléatoire dans le tray
+      const maxOffsetX = Math.max(0, trayW - containerSize);
+      const maxOffsetY = Math.max(0, trayH - containerSize);
+      piece.x = trayX + Math.random() * maxOffsetX;
+      piece.y = trayY + Math.random() * maxOffsetY;
+      el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
+
+      el.addEventListener('pointerdown', (e) => jigOnPointerDown(e, piece));
+      el.addEventListener('pointermove', (e) => jigOnPointerMove(e, piece));
+      el.addEventListener('pointerup', (e) => jigOnPointerUp(e, piece));
+      el.addEventListener('pointercancel', (e) => jigOnPointerUp(e, piece));
+
+      jigWorkspaceEl.appendChild(el);
+      pieces.push(piece);
+    }
+  }
+
+  jigsawState = { rows, cols, pieces, photo, pieceW, PAD, placedCount: 0 };
+  jigPlacedEl.textContent = '0';
+  jigTotalEl.textContent = pieces.length;
+}
+
+function jigOnPointerDown(e, piece) {
+  if (piece.locked) return;
+  e.preventDefault();
+  e.stopPropagation();
+  jigDragging = piece;
+  piece.el.classList.add('dragging');
+  piece.el.style.zIndex = ++jigZCounter;
+  piece.el.setPointerCapture(e.pointerId);
+  const wsRect = jigWorkspaceEl.getBoundingClientRect();
+  jigDragOffset.x = e.clientX - wsRect.left - piece.x;
+  jigDragOffset.y = e.clientY - wsRect.top - piece.y;
+}
+
+function jigOnPointerMove(e, piece) {
+  if (jigDragging !== piece) return;
+  e.preventDefault();
+  const wsRect = jigWorkspaceEl.getBoundingClientRect();
+  piece.x = e.clientX - wsRect.left - jigDragOffset.x;
+  piece.y = e.clientY - wsRect.top - jigDragOffset.y;
+  piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
+  // Hint visuel quand on est dans la zone de snap
+  const dx = piece.x - piece.correctX;
+  const dy = piece.y - piece.correctY;
+  const SNAP = piece.containerSize * 0.25;
+  piece.el.classList.toggle('near-snap', Math.hypot(dx, dy) < SNAP);
+}
+
+function jigOnPointerUp(e, piece) {
+  if (jigDragging !== piece) return;
+  jigDragging = null;
+  piece.el.classList.remove('dragging');
+  piece.el.classList.remove('near-snap');
+  // Snap si proche de la position correcte
+  const dx = piece.x - piece.correctX;
+  const dy = piece.y - piece.correctY;
+  const SNAP = piece.containerSize * 0.25;
+  if (Math.hypot(dx, dy) < SNAP) {
+    piece.x = piece.correctX;
+    piece.y = piece.correctY;
+    piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px)`;
+    piece.locked = true;
+    piece.el.classList.add('locked');
+    if (jigsawState) {
+      jigsawState.placedCount++;
+      jigPlacedEl.textContent = jigsawState.placedCount;
+      if (jigsawState.placedCount === jigsawState.pieces.length) jigWin();
+    }
+  }
+}
+
+function jigWin() {
+  const msg = APP_CONTENT.puzzleWinMessage || "Puzzle terminé !";
+  jigWinBannerEl.innerHTML = `
+    <div class="win-banner">
+      <h3>🎉 Bravo !</h3>
+      <p>${msg}</p>
+    </div>`;
+}
+
+document.getElementById('jigShuffle').addEventListener('click', () => {
+  startJigsaw(+jigSizeEl.value, jigsawState?.photo);
+});
+document.getElementById('jigNewPhoto').addEventListener('click', () => {
+  startJigsaw(+jigSizeEl.value);
+});
+jigSizeEl.addEventListener('change', () => startJigsaw(+jigSizeEl.value));
+
 async function switchView(view) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.menu-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
@@ -1487,6 +1726,7 @@ async function switchView(view) {
   if (view === 'capsules') renderCapsules();
   if (view === 'game' && !gameState) startGame();
   if (view === 'puzzle' && !puzzleState) startPuzzle(+puzzleSizeEl.value);
+  if (view === 'jigsaw' && !jigsawState) startJigsaw(+jigSizeEl.value);
   if (view === 'drawing') {
     try { await loadProfile(); renderDrawingView(); }
     catch (e) { console.error(e); }
