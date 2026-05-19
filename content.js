@@ -235,7 +235,7 @@ window.APP_CONTENT = {
     "Une plante imaginaire",
     "Le visage de la joie",
     "Un monstre gentil",
-    "La fenêtre d'un train",
+    "Ton plus gros fantasme :)",
     "Un plat qui te ramène en arrière",
     "Une chambre rêvée",
     "Ton animal-totem",
