@@ -3,6 +3,7 @@ photos/*.HEIC
 photos/*.JPG
 photos/*.heic
 photos/*.jpg
+newpics/
 
 # Garder le dossier web/ optimisé
 !photos/web/

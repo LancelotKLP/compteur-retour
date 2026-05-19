@@ -139,7 +139,17 @@ window.APP_CONTENT = {
     { img: "photos/web/IMG_1156.jpg" },
     { img: "photos/web/IMG_1174.jpg" },
     { img: "photos/web/IMG_1215.jpg" },
-    { img: "photos/web/IMG_9876.jpg" }
+    { img: "photos/web/IMG_9876.jpg" },
+    { img: "photos/web/IMG_1222.jpg" },
+    { img: "photos/web/IMG_1245.jpg" },
+    { img: "photos/web/IMG_1264.jpg" },
+    { img: "photos/web/IMG_1300.jpg" },
+    { img: "photos/web/IMG_1326.jpg" },
+    { img: "photos/web/IMG_1444.jpg" },
+    { img: "photos/web/IMG_1512.jpg" },
+    { img: "photos/web/IMG_1527.jpg" },
+    { img: "photos/web/IMG_1545.jpg" },
+    { img: "photos/web/IMG_1552.jpg" }
   ],
 
   memoryWinMessage: "Bravo ma belle 💕 Encore un jour de gagné.",
