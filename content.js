@@ -148,7 +148,8 @@ window.APP_CONTENT = {
     { img: "photos/web/IMG_1444.jpg" },
     { img: "photos/web/IMG_1512.jpg" },
     { img: "photos/web/IMG_1527.jpg" },
-    { img: "photos/web/IMG_1552.jpg" }
+    { img: "photos/web/IMG_1552.jpg" }, 
+    { img: "photos/web/IMG_1561.jpg" }
   ],
 
   memoryWinMessage: "Bravo ma belle 💕 Encore un jour de gagné.",
