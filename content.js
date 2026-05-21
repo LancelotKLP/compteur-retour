@@ -237,7 +237,7 @@ window.APP_CONTENT = {
     "Un monstre gentil",
     "Ton plus gros fantasme :)",
     "Ton plus gros fantasme :)",
-    "Une chambre rêvée",
+    "Ton plus gros fantasme :)",
     "Ton animal-totem",
     "Le matin parfait",
     "Une ville sous la pluie",
