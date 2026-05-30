@@ -89,7 +89,7 @@ function daysRemaining() {
   const remainingEl = document.getElementById('journeyRemaining');
   if (!fullPath || !donePath || !traveler) return;
 
-  const START = new Date(APP_CONFIG.PROMPTS_START_DATE + 'T00:00:00').getTime();
+  const START = new Date((APP_CONFIG.SEPARATION_START_DATE || APP_CONFIG.PROMPTS_START_DATE) + 'T00:00:00').getTime();
   const totalLen = fullPath.getTotalLength();
   donePath.style.strokeDasharray = totalLen;
 
@@ -1466,6 +1466,153 @@ async function renderJournalView() {
 document.getElementById('journalGoAuth').addEventListener('click', () => switchView('drawing'));
 
 // =============================================================
+// NUITS À LA MAISON (calendrier partagé, par personne)
+// =============================================================
+const nightsGateEl = document.getElementById('nightsGate');
+const nightsMainEl = document.getElementById('nightsMain');
+const nightsStatsEl = document.getElementById('nightsStats');
+const nightsLegendEl = document.getElementById('nightsLegend');
+const nightsCalendarEl = document.getElementById('nightsCalendar');
+
+// Période couverte : du départ (séparation) jusqu'à l'arrivée
+const NIGHTS_START = APP_CONFIG.SEPARATION_START_DATE || APP_CONFIG.PROMPTS_START_DATE;
+const NIGHTS_END = new Date(TARGET);
+const NIGHTS_END_KEY = pad2Date(NIGHTS_END.getFullYear(), NIGHTS_END.getMonth() + 1, NIGHTS_END.getDate());
+
+function pad2Date(y, m, d) { return `${y}-${pad(m)}-${pad(d)}`; }
+
+// Set des dates cochées par moi (pour toggle optimiste)
+let myNightKeys = new Set();
+// Map dateKey -> { me: bool, partner: bool }
+let nightsByDate = {};
+let nightsPartnerPseudo = '';
+
+async function loadNights() {
+  if (!myProfile || !myProfile.couple_id) return;
+  const { data, error } = await sb.from('nights')
+    .select('user_id, night_date')
+    .eq('couple_id', myProfile.couple_id);
+  if (error) { console.error(error); return; }
+
+  const { data: profiles } = await sb.from('profiles')
+    .select('id,pseudo').eq('couple_id', myProfile.couple_id);
+  const partner = (profiles || []).find(p => p.id !== myProfile.id);
+  nightsPartnerPseudo = partner ? partner.pseudo : 'Ton·a partenaire';
+
+  myNightKeys = new Set();
+  nightsByDate = {};
+  (data || []).forEach(n => {
+    const k = n.night_date;
+    if (!nightsByDate[k]) nightsByDate[k] = { me: false, partner: false };
+    if (n.user_id === myProfile.id) { nightsByDate[k].me = true; myNightKeys.add(k); }
+    else nightsByDate[k].partner = true;
+  });
+}
+
+async function toggleNight(dateKey) {
+  if (!myProfile || !myProfile.couple_id) return;
+  const wasOn = myNightKeys.has(dateKey);
+  // MAJ optimiste
+  if (wasOn) {
+    myNightKeys.delete(dateKey);
+    if (nightsByDate[dateKey]) nightsByDate[dateKey].me = false;
+  } else {
+    myNightKeys.add(dateKey);
+    if (!nightsByDate[dateKey]) nightsByDate[dateKey] = { me: false, partner: false };
+    nightsByDate[dateKey].me = true;
+  }
+  renderNightsCalendar();
+
+  let error;
+  if (wasOn) {
+    ({ error } = await sb.from('nights')
+      .delete().eq('user_id', myProfile.id).eq('night_date', dateKey));
+  } else {
+    ({ error } = await sb.from('nights').insert({
+      user_id: myProfile.id,
+      couple_id: myProfile.couple_id,
+      night_date: dateKey
+    }));
+  }
+  if (error) {
+    alert("Erreur : " + error.message);
+    await loadNights();
+    renderNightsCalendar();
+  }
+}
+
+function renderNightsCalendar() {
+  // Légende
+  nightsLegendEl.innerHTML = `
+    <span class="leg"><span class="dot dot-me"></span>Toi</span>
+    <span class="leg"><span class="dot dot-partner"></span>${escapeHtml(nightsPartnerPseudo)}</span>`;
+
+  // Stats
+  const myCount = myNightKeys.size;
+  nightsStatsEl.innerHTML = `<strong>${myCount}</strong> nuit${myCount > 1 ? 's' : ''} à la maison cochée${myCount > 1 ? 's' : ''}`;
+
+  const start = new Date(NIGHTS_START + 'T00:00:00');
+  const end = NIGHTS_END;
+  const todayK = todayKey();
+  const weekdays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  let html = '';
+  let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const lastMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+  while (cursor <= lastMonth) {
+    const y = cursor.getFullYear();
+    const m = cursor.getMonth(); // 0-indexé
+    const monthLabel = cursor.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    // offset : 0 = lundi
+    let firstDow = new Date(y, m, 1).getDay(); // 0=dim
+    firstDow = (firstDow + 6) % 7;
+
+    html += `<div class="nights-month"><div class="nights-month-title">${monthLabel}</div>`;
+    html += `<div class="nights-weekdays">${weekdays.map(w => `<div class="nights-weekday">${w}</div>`).join('')}</div>`;
+    html += `<div class="nights-grid">`;
+    for (let i = 0; i < firstDow; i++) html += `<div class="nights-cell empty"></div>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const k = pad2Date(y, m + 1, d);
+      const inRange = k >= NIGHTS_START && k <= NIGHTS_END_KEY;
+      const isFuture = k > todayK;
+      const disabled = !inRange || isFuture;
+      const rec = nightsByDate[k] || { me: false, partner: false };
+      const cls = ['nights-cell'];
+      if (disabled) cls.push('disabled');
+      if (rec.me) cls.push('me-on');
+      if (k === todayK) cls.push('today');
+      let marks = '';
+      if (rec.me) marks += `<span class="dot dot-me"></span>`;
+      if (rec.partner) marks += `<span class="dot dot-partner"></span>`;
+      html += `<div class="${cls.join(' ')}" data-date="${k}"${disabled ? '' : ' role="button" tabindex="0"'}>${d}<div class="nights-marks">${marks}</div></div>`;
+    }
+    html += `</div></div>`;
+    cursor = new Date(y, m + 1, 1);
+  }
+
+  nightsCalendarEl.innerHTML = html;
+  nightsCalendarEl.querySelectorAll('.nights-cell[data-date]:not(.disabled)').forEach(cell => {
+    cell.onclick = () => toggleNight(cell.dataset.date);
+  });
+}
+
+async function renderNightsView() {
+  if (!myUser || !myProfile || !myProfile.couple_id) {
+    nightsGateEl.style.display = 'block';
+    nightsMainEl.style.display = 'none';
+    return;
+  }
+  nightsGateEl.style.display = 'none';
+  nightsMainEl.style.display = 'block';
+  await loadNights();
+  renderNightsCalendar();
+}
+
+document.getElementById('nightsGoAuth').addEventListener('click', () => switchView('drawing'));
+
+// =============================================================
 // NAVIGATION (bottom nav + top burger)
 // =============================================================
 const burgerBtn = document.getElementById('burgerBtn');
@@ -1815,6 +1962,10 @@ async function switchView(view) {
   }
   if (view === 'journal') {
     try { await loadProfile(); renderJournalView(); }
+    catch (e) { console.error(e); }
+  }
+  if (view === 'nights') {
+    try { await loadProfile(); renderNightsView(); }
     catch (e) { console.error(e); }
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });

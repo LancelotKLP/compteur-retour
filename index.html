@@ -672,6 +672,52 @@
   .couple-gate h3 { color: var(--accent-2); font-weight: 400; font-size: 18px; margin-bottom: 8px; }
   .couple-gate p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
 
+  /* ============ NUITS À LA MAISON (calendrier) ============ */
+  .nights-stats {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 12px;
+    font-size: 13px; color: var(--muted); text-align: center;
+  }
+  .nights-stats strong { color: var(--accent-2); font-weight: 500; }
+  .nights-legend {
+    display: flex; justify-content: center; gap: 18px; flex-wrap: wrap;
+    margin-bottom: 18px; font-size: 12px; color: var(--muted);
+  }
+  .nights-legend .leg { display: inline-flex; align-items: center; gap: 6px; }
+  .nights-legend .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .dot-me { background: var(--accent); }
+  .dot-partner { background: #7ec8ff; }
+  .nights-month { margin-bottom: 24px; }
+  .nights-month-title {
+    text-align: center; color: var(--accent-2); font-weight: 500;
+    font-size: 15px; margin-bottom: 12px; text-transform: capitalize;
+  }
+  .nights-weekdays, .nights-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  }
+  .nights-weekdays { margin-bottom: 6px; }
+  .nights-weekday {
+    text-align: center; font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .nights-cell {
+    aspect-ratio: 1; border-radius: 12px; position: relative;
+    display: flex; align-items: flex-start; justify-content: flex-end;
+    padding: 5px 6px; font-size: 12px; color: var(--muted);
+    background: var(--card); border: 1px solid var(--card-border);
+    cursor: pointer; user-select: none; transition: transform 0.1s, background 0.15s;
+  }
+  .nights-cell.empty { background: transparent; border: none; cursor: default; }
+  .nights-cell.disabled { opacity: 0.3; cursor: not-allowed; }
+  .nights-cell.today { border-color: var(--accent-2); }
+  .nights-cell:not(.empty):not(.disabled):active { transform: scale(0.94); }
+  .nights-cell.me-on { background: linear-gradient(135deg, rgba(255,126,179,0.35), rgba(255,179,199,0.2)); border-color: var(--accent); color: var(--text); }
+  .nights-marks {
+    position: absolute; bottom: 5px; left: 6px;
+    display: flex; gap: 4px;
+  }
+  .nights-marks .dot { width: 9px; height: 9px; border-radius: 50%; }
+
   /* ============ NAV (bottom — desktop/tablette) ============ */
   .nav {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -853,6 +899,9 @@
     </button>
     <button class="menu-btn" data-view="journal">
       <span class="menu-icon">📓</span><span>Journal commun</span>
+    </button>
+    <button class="menu-btn" data-view="nights">
+      <span class="menu-icon">🌙</span><span>Nuits à la maison</span>
     </button>
   </div>
 
@@ -1097,6 +1146,23 @@
       </div>
     </section>
 
+    <!-- ============ VIEW: NUITS À LA MAISON ============ -->
+    <section class="view" id="view-nights">
+      <h1 class="title">Nuits à la maison</h1>
+      <div id="nightsGate" style="display:none">
+        <div class="couple-gate">
+          <h3>Calendrier partagé</h3>
+          <p>Ce calendrier est partagé avec ton·a partenaire. Va dans <strong>Dessin</strong> pour te connecter et rejoindre votre couple.</p>
+          <button class="btn primary" id="nightsGoAuth">Aller à Dessin</button>
+        </div>
+      </div>
+      <div id="nightsMain" style="display:none">
+        <div class="nights-stats" id="nightsStats">—</div>
+        <div class="nights-legend" id="nightsLegend"></div>
+        <div class="nights-calendar" id="nightsCalendar"></div>
+      </div>
+    </section>
+
     <!-- ============ VIEW: DESSIN ============ -->
     <section class="view" id="view-drawing">
       <h1 class="title">Dessin du jour</h1>
@@ -1191,6 +1257,9 @@
       </button>
       <button class="nav-btn" data-view="journal">
         <span class="nav-icon">📓</span><span>Journal</span>
+      </button>
+      <button class="nav-btn" data-view="nights">
+        <span class="nav-icon">🌙</span><span>Nuits</span>
       </button>
     </div>
   </nav>

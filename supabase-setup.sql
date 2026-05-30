@@ -338,5 +338,44 @@ create policy "journal_delete" on public.journal_entries
   );
 
 -- ============================================================
+-- 8) Calendrier des nuits passées à la maison (nights)
+-- ============================================================
+
+create table if not exists public.nights (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  night_date date not null,
+  created_at timestamptz default now(),
+  unique (user_id, night_date)
+);
+
+create index if not exists nights_couple_date_idx
+  on public.nights (couple_id, night_date);
+
+alter table public.nights enable row level security;
+
+-- Chacun coche ses propres nuits ; les deux membres du couple voient les deux
+drop policy if exists "nights_select" on public.nights;
+create policy "nights_select" on public.nights
+  for select to authenticated using (
+    couple_id = public.my_couple_id()
+  );
+
+drop policy if exists "nights_insert" on public.nights;
+create policy "nights_insert" on public.nights
+  for insert to authenticated with check (
+    user_id = auth.uid()
+    and couple_id = public.my_couple_id()
+  );
+
+-- Chacun ne peut décocher que ses propres nuits
+drop policy if exists "nights_delete" on public.nights;
+create policy "nights_delete" on public.nights
+  for delete to authenticated using (
+    user_id = auth.uid()
+  );
+
+-- ============================================================
 -- DONE
 -- ============================================================
